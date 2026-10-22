@@ -1,62 +1,63 @@
-# XAFS / HAXPES 標準試料スペクトル検索（試作）
+# XAFS / HAXPES Reference Spectra Search Portal (prototype)
 
-XAFS・HAXPES の標準試料データを、元素から探して、選んだものだけをダウンロードできる Web ページです。
-データ本体は持たず、各データベースの公開情報（DOI 登録情報・知識グラフ）を使って検索し、各データベースへ直接リンクします。
+A static web page to find XAFS / HAXPES reference spectra by element and download only the ones you need.
+It holds no spectral data itself: it searches public metadata (DOI records and a knowledge graph) and links directly to each source database.
 
-*Reference Spectra Search (prototype): find XAFS/HAXPES reference spectra by element and download only what you need. The page is bilingual (Japanese / English).*
+**Live page:** https://matumot.github.io/xafs-portal-prototype/ (Japanese / English, `?lang=en` opens in English)
 
-## できること
+> 日本語：XAFS・HAXPES の標準試料スペクトルを元素から検索し、必要なものだけをダウンロードできる Web ページ（試作版）です。画面右上で日本語／英語を切り替えられます。
 
-| タブ | 検索対象 | 主な絞り込み | 取得できるもの |
+## Features
+
+| Tab | Sources | Filters | You get |
 |---|---|---|---|
-| **IXDB（XAFS 国際横断）** | 各国 7 データベース（MDR〔日本〕、CLS〔カナダ〕、SSHADE/FAME・ESRF〔フランス〕、XASLIB〔米国〕、LISA〔イタリア〕、IHEP〔中国〕） | データベース、MDR の施設、吸収端 | 各 DB のページ、MDR は DOI・zip |
-| **MDR（XAFS）** | NIMS MDR XAFS DB（SPring-8、KEK-PF、北大、立命館、あいちSR、九州SR） | 施設、吸収端、分光結晶、分類 | DOI・zip |
-| **MDR（HAXPES）** | NIMS MDR HAXPES DB（SPring-8 BL46XU） | — | DOI・zip |
+| **IXDB (XAFS, international)** | 7 databases via the International XAFS DB Portal: MDR (Japan), CLS (Canada), SSHADE/FAME and ESRF ID21 (France), XASLIB (USA), LISA (Italy), IHEP (China) | database, MDR facility, absorption edge | link to each database; DOI and zip for MDR |
+| **MDR (XAFS)** | NIMS MDR XAFS DB (SPring-8, KEK-PF, Hokkaido Univ., Ritsumeikan Univ., Aichi SR, Kyushu SR) | facility, edge, monochromator crystal, category | DOI and zip |
+| **MDR (HAXPES)** | NIMS MDR HAXPES DB (SPring-8 BL46XU) | — | DOI and zip |
 
-- 同じ物質は複数のデータベースにまたがってまとめて表示（IXDB タブ）
-- 選んだ試料はタブを切り替えても保持し、まとめて zip ダウンロード、CSV（DOI・URL 一覧）保存、引用文コピーが可能
-- 右上のボタンで日本語 / English を切り替え（`?lang=en` 付きの URL は英語で開く）
+- Records of the same material are grouped across databases (IXDB tab).
+- Your selection is kept across tabs; download the MDR records as zip, save the list as CSV (DOI, URL), or copy citations.
 
-## 使い方
+## Usage
 
-1. タブを選ぶ
-2. 周期表で元素を選ぶ
-3. 一覧で試料にチェックを入れ、「ダウンロード」欄から取得する
+1. Choose a tab.
+2. Click an element in the periodic table.
+3. Tick the samples you want and use the **Download** section.
 
-## 仕組み
+## How it works
 
 ```
-ブラウザ（docs/index.html：静的ページ、サーバ不要）
- ├ MDR タブ  → DataCite REST API（DOI 登録情報）をその場で検索
- └ IXDB タブ → docs/ixdb_index.js（IXDB 知識グラフから作成した索引）をページ内で検索
-                 └ tools/build_ixdb_index.py で作成・更新（SPARQL ＋ DataCite、数秒）
-データ本体 → 各データベース（MDR の zip、各 DB のページ）から直接取得
+Browser (docs/index.html: static page, no server needed)
+ ├ MDR tabs  → DataCite REST API (DOI metadata), queried live
+ └ IXDB tab  → docs/ixdb_index.js (index built from the IXDB knowledge graph), searched in the page
+                 └ built by tools/build_ixdb_index.py (SPARQL + DataCite, a few seconds)
+Spectral data → fetched directly from each database (MDR zip, database pages)
 ```
 
-- NIMS MDR の API と IXDB の SPARQL はブラウザから直接呼べない（CORS 非対応）ため、MDR は DataCite 経由、IXDB は事前作成の索引を使っています。
+The NIMS MDR API and the IXDB SPARQL endpoint cannot be called from a browser (no CORS), so MDR is searched through DataCite and IXDB through a prebuilt index.
 
-## 公開・更新
+## Deploy and update
 
-- **公開**：GitHub Pages の公開元を「`main` ブランチの `/docs` フォルダ」に設定するだけで動きます。
-- **ローカル確認**：`python -m http.server 8000 --directory docs` → http://localhost:8000
-- **IXDB 索引の更新**：`python tools/build_ixdb_index.py --out docs/ixdb_index.js`（Python 3.9 以上、追加ライブラリ不要）
+- **GitHub Pages:** source = `main` branch, `/docs` folder.
+- **Run locally:** `python -m http.server 8000 --directory docs`, then open http://localhost:8000
+- **Update the IXDB index:** `python tools/build_ixdb_index.py --out docs/ixdb_index.js` (Python 3.9+, no extra packages)
 
-## 注意・制約
+## Limitations
 
-- MDR の応答が遅く、DOI からページが開くまで、または zip のダウンロード開始まで 30 秒〜1 分程度かかることがあります。
-- 周期表の色付け（MDR タブ）は 2026-10-22 時点の登録状況です。色のない元素も検索できます。
-- IXDB タブの物質名は各データのタイトルから整形しています（物質辞書 MatVoc の名称は未使用）。
-- 試作版です。表示内容は各データベースに登録されたメタデータに基づきます。
+- MDR responds slowly: opening a DOI or starting a zip download can take 30 s to 1 min.
+- Element highlighting in the MDR tabs reflects registrations as of 2026-10-22; other elements can still be searched.
+- Material names in the IXDB tab are derived from record titles (MatVoc names are not used).
+- Prototype: information shown is based on the metadata registered in each database.
 
-## ライセンスとデータの出典
+## License and data sources
 
-- **プログラム**（`docs/index.html`、`tools/`）：[MIT License](LICENSE)
-- **IXDB 索引**（`docs/ixdb_index.js`）：M. Ishii et al.「International XAFS DB RDF and Ontology」（NIMS MDR、[doi:10.48505/nims.5513](https://doi.org/10.48505/nims.5513)、[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)）から作成。MDR データの施設情報は DataCite のメタデータ（CC0）を利用。
-- **スペクトルデータ**：このリポジトリには含みません。利用条件・引用は各データベースの規定に従ってください。
-  - MDR XAFS DB：[doi:10.48505/nims.1447](https://doi.org/10.48505/nims.1447)（JASRI 提供分は CC BY 4.0。SPring-8 BL14B2 のデータは Ofuchi, Matsumoto, Honma, *Radiat. Phys. Chem.* **218** (2024) 111581 も引用）
-  - MDR HAXPES DB：[doi:10.48505/nims.3056](https://doi.org/10.48505/nims.3056)
-  - International XAFS DB Portal：M. Ishii et al., *J. Synchrotron Rad.* **32** (2025), [doi:10.1107/S1600577525002206](https://doi.org/10.1107/S1600577525002206)
+- **Code** (`docs/index.html`, `tools/`): [MIT License](LICENSE)
+- **IXDB index** (`docs/ixdb_index.js`): derived from M. Ishii et al., "International XAFS DB RDF and Ontology" (NIMS MDR, [doi:10.48505/nims.5513](https://doi.org/10.48505/nims.5513), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)). Facility information for MDR records is taken from DataCite metadata (CC0).
+- **Spectral data** are not included in this repository. Follow the terms of use and citation rules of each database:
+  - MDR XAFS DB: [doi:10.48505/nims.1447](https://doi.org/10.48505/nims.1447) (data provided by JASRI: CC BY 4.0; for SPring-8 BL14B2 data also cite Ofuchi, Matsumoto, Honma, *Radiat. Phys. Chem.* **218** (2024) 111581)
+  - MDR HAXPES DB: [doi:10.48505/nims.3056](https://doi.org/10.48505/nims.3056)
+  - International XAFS DB Portal: M. Ishii et al., *J. Synchrotron Rad.* **32** (2025), [doi:10.1107/S1600577525002206](https://doi.org/10.1107/S1600577525002206)
 
-## 作成者 / Author
+## Author
 
-Takahiro Matsumoto / JASRI（Japan Synchrotron Radiation Research Institute）
+Takahiro Matsumoto / JASRI (Japan Synchrotron Radiation Research Institute)
