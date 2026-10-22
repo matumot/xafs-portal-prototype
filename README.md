@@ -3,7 +3,11 @@
 A static web page to find XAFS / HAXPES reference spectra by element and download only the ones you need.
 It holds no spectral data itself: it searches public metadata (DOI records and a knowledge graph) and links directly to each source database.
 
-**Live page:** https://matumot.github.io/xafs-portal-prototype/ (Japanese / English, `?lang=en` opens in English)
+**Live page:**
+- English: https://matumot.github.io/xafs-portal-prototype/?lang=en
+- 日本語: https://matumot.github.io/xafs-portal-prototype/?lang=ja
+
+(The language can also be switched with the button at the top right of the page.)
 
 > 日本語：XAFS・HAXPES の標準試料スペクトルを元素から検索し、必要なものだけをダウンロードできる Web ページ（試作版）です。画面右上で日本語／英語を切り替えられます。
 
