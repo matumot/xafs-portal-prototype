@@ -56,3 +56,7 @@ XAFS・HAXPES の標準試料データを、元素から探して、選んだも
   - MDR XAFS DB：[doi:10.48505/nims.1447](https://doi.org/10.48505/nims.1447)（JASRI 提供分は CC BY 4.0。SPring-8 BL14B2 のデータは Ofuchi, Matsumoto, Honma, *Radiat. Phys. Chem.* **218** (2024) 111581 も引用）
   - MDR HAXPES DB：[doi:10.48505/nims.3056](https://doi.org/10.48505/nims.3056)
   - International XAFS DB Portal：M. Ishii et al., *J. Synchrotron Rad.* **32** (2025), [doi:10.1107/S1600577525002206](https://doi.org/10.1107/S1600577525002206)
+
+## 作成者 / Author
+
+Takahiro Matsumoto / JASRI（Japan Synchrotron Radiation Research Institute）
