@@ -100,7 +100,13 @@ def parse_matvoc(html):
     cod = list(dict.fromkeys(re.findall(r"crystallography\.net/cod/(\d+)\.html", main_part)))
     info = {"en": label("English"), "ja": label("Japanese"), "f": text(formula.group(1)) if formula else "",
             "mp": mp.group(1) if mp else "", "aw": aw.group(1).replace("&amp;", "&") if aw else "", "cod": cod}
-    return {k: v for k, v in info.items() if v}
+    return clean_matvoc(info)
+
+
+def clean_matvoc(info):
+    """空の値と、名称が未登録のときに MatVoc が表示する「(ラベル無し)」「(No label)」を除く"""
+    placeholder = re.compile(r"^\((ラベル無し|No label)\)$", re.I)
+    return {k: v for k, v in info.items() if v and not (isinstance(v, str) and placeholder.match(v))}
 
 
 def matvoc_info(qids, cache_file, interval=1.0):
@@ -136,7 +142,7 @@ def matvoc_info(qids, cache_file, interval=1.0):
             cache_file.write_text(json.dumps(cache, ensure_ascii=False), encoding="utf-8")
         time.sleep(interval)
     print(f"MatVoc: {sum(1 for q in qids if q in cache)}/{len(qids)} materials ({len(todo)} fetched)")
-    return {q: cache[q] for q in qids if q in cache}
+    return {q: clean_matvoc(cache[q]) for q in qids if q in cache}
 
 
 def main():
