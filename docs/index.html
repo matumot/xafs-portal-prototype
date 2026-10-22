@@ -63,6 +63,10 @@
   td.nw { white-space: nowrap; }
   tr.on td { background: var(--avail); }
   td.links a { margin-right: 8px; white-space: nowrap; }
+  details.cod { display: inline; }
+  details.cod summary { display: inline; cursor: pointer; color: var(--accent); text-decoration: underline; margin-right: 8px; white-space: nowrap; }
+  details.cod[open] { display: block; margin: 2px 0; }
+  details.cod[open] a { margin-right: 6px; font-size: 11.5px; }
   .btns { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
   .btns button { font: inherit; font-size: 12.5px; padding: 5px 10px; border-radius: 5px;
     border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
@@ -463,8 +467,15 @@
     const m = r.mv || {}, a = (href, text, title = "") => `<a href="${esc(href)}" target="_blank" rel="noopener"${title ? ` title="${esc(title)}"` : ""}>${esc(text)}</a>`;
     const mvUrl = `https://matvoc.nims.go.jp/explore/${lang === "ja" ? "ja" : "en"}/results/${r.mat}`;
     return [a(mvUrl, "MatVoc"), m.mp ? a(m.mp, "MP-XAS", "Materials Project XAS") : "",
-      m.cod?.length ? a(mvUrl, t("codN", { n: m.cod.length }), "Crystallography Open Database") : "",
-      m.aw ? a(m.aw, "AtomWork") : ""].filter(Boolean).join(" ");
+      codHtml(m.cod || [], a), m.aw ? a(m.aw, "AtomWork") : ""].filter(Boolean).join(" ");
+  }
+  // COD は個別エントリへ直接リンク。複数あるときはクリックでその場に ID 一覧を開く
+  function codHtml(ids, a) {
+    const url = id => `https://www.crystallography.net/cod/${id}.html`;
+    if (!ids.length) return "";
+    if (ids.length === 1) return a(url(ids[0]), "COD", `Crystallography Open Database ${ids[0]}`);
+    return `<details class="cod"><summary title="Crystallography Open Database">${esc(t("codN", { n: ids.length }))}</summary>`
+      + ids.map(id => a(url(id), id)).join(" ") + "</details>";
   }
 
   function filtered() {
