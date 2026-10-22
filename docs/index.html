@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>標準試料スペクトル検索（試作）</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --ink: #1d2430; --muted: #5d6878; --line: #dde2e8;
+    --accent: #1f5c99; --accent-soft: #e6eef7; --avail: #d9ebf9; --avail-ink: #12406b;
+    --sel: #1f5c99; --sel-ink: #ffffff; --warn: #8a5a00; --err: #b3261e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12161c; --panel: #1a2029; --ink: #e5e9ef; --muted: #9aa5b4; --line: #2c3542;
+      --accent: #7fb4e8; --accent-soft: #223246; --avail: #23384f; --avail-ink: #cfe3f7;
+      --sel: #7fb4e8; --sel-ink: #0d1520; --warn: #e0b45a; --err: #f2948c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Yu Gothic UI", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif; font-size: 14px; }
+  header { padding: 16px 20px 8px; }
+  header h1 { margin: 0; font-size: 20px; }
+  header p { margin: 4px 0 0; color: var(--muted); font-size: 12.5px; }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 10px; background: var(--accent-soft);
+    color: var(--accent); font-size: 11.5px; margin-left: 8px; vertical-align: middle; }
+  .modebar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 4px 20px 8px; }
+  .seg { display: inline-flex; }
+  .seg button { font: inherit; font-size: 13px; padding: 6px 14px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--ink); cursor: pointer; margin-left: -1px; }
+  .seg button:first-child { border-radius: 6px 0 0 6px; margin-left: 0; }
+  .seg button:last-child { border-radius: 0 6px 6px 0; }
+  .seg button.on { background: var(--accent); color: var(--sel-ink); border-color: var(--accent); }
+  .modebar label { font-size: 12.5px; color: var(--muted); }
+  .modebar select { font: inherit; padding: 5px 8px; border: 1px solid var(--line); border-radius: 5px;
+    background: var(--panel); color: var(--ink); }
+  main { display: grid; grid-template-columns: minmax(340px, 460px) 1fr; gap: 14px; padding: 4px 20px 20px; align-items: start; }
+  @media (max-width: 980px) { main { grid-template-columns: 1fr; padding: 4px 12px 16px; } .modebar { padding: 4px 12px 8px; } }
+  main > * { min-width: 0; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+  .panel h2 { font-size: 14px; margin: 0 0 8px; color: var(--accent); }
+  .ptable { display: grid; grid-template-columns: repeat(18, 1fr); gap: 2px; }
+  .el { aspect-ratio: 1; border: 1px solid var(--line); border-radius: 3px; font-size: 10.5px; padding: 0;
+    display: flex; align-items: center; justify-content: center; color: var(--muted); background: transparent;
+    cursor: pointer; font-family: inherit; }
+  .el.avail { background: var(--avail); color: var(--avail-ink); font-weight: 600; }
+  .el:hover { outline: 2px solid var(--accent); }
+  .el.sel { background: var(--sel); color: var(--sel-ink); }
+  .hint { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
+  .filters { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+  .filters label { font-size: 12px; color: var(--muted); display: block; }
+  .filters input, .filters select { width: 100%; padding: 6px 8px; border: 1px solid var(--line);
+    border-radius: 5px; background: var(--panel); color: var(--ink); font: inherit; }
+  .filters .wide { grid-column: 1 / -1; }
+  .filters .hide { display: none; }
+  .status { color: var(--muted); font-size: 12.5px; margin: 4px 0 6px; }
+  .status.err { color: var(--err); }
+  .list { max-height: 60vh; overflow: auto; border-top: 1px solid var(--line); }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--line); font-size: 12.5px; vertical-align: top; }
+  th { position: sticky; top: 0; background: var(--panel); color: var(--muted); font-weight: 600; z-index: 1; }
+  td.nw { white-space: nowrap; }
+  tr.on td { background: var(--avail); }
+  td.links a { margin-right: 8px; white-space: nowrap; }
+  .btns { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+  .btns button { font: inherit; font-size: 12.5px; padding: 5px 10px; border-radius: 5px;
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+  .btns button.primary { background: var(--accent); color: var(--sel-ink); border-color: var(--accent); }
+  .btns button:disabled { opacity: .5; cursor: default; }
+  .cart li { margin-bottom: 4px; font-size: 12.5px; }
+  .cart ul { padding-left: 18px; margin: 6px 0; }
+  a { color: var(--accent); }
+  .empty { color: var(--muted); padding: 24px 0; text-align: center; }
+  footer { padding: 0 20px 24px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+  .note { color: var(--warn); }
+  .topline { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .lang { font: inherit; font-size: 12.5px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 14px;
+    background: var(--panel); color: var(--ink); cursor: pointer; white-space: nowrap; }
+  .lang:hover { border-color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <div class="topline">
+    <h1><span data-i18n="title"></span><span class="badge" data-i18n="badge"></span></h1>
+    <button type="button" class="lang" id="lang" aria-label="Language"></button>
+  </div>
+  <p data-i18n="lead"></p>
+</header>
+
+<div class="modebar">
+  <span class="seg" id="method" role="group" data-i18n-aria="methodAria">
+    <button type="button" data-v="IXDB" class="on" data-i18n="tabIXDB"></button>
+    <button type="button" data-v="XAFS" data-i18n="tabXAFS"></button>
+    <button type="button" data-v="HAXPES" data-i18n="tabHAXPES"></button>
+  </span>
+  <label for="facility" id="facilityLabel"></label>
+  <select id="facility"></select>
+</div>
+
+<main>
+  <section class="panel">
+    <h2 data-i18n="step1"></h2>
+    <div class="ptable" id="ptable" data-i18n-aria="ptAria"></div>
+    <p class="hint" id="ptHint"></p>
+  </section>
+
+  <section class="panel">
+    <h2 data-i18n="step2"></h2>
+    <div class="filters">
+      <div class="wide"><label for="q" data-i18n="qLabel"></label>
+        <input id="q" type="search" data-i18n-ph="qPh"></div>
+      <div class="xafs-only"><label for="edge" data-i18n="edge"></label><select id="edge"><option value="" data-i18n="all"></option></select></div>
+      <div class="xafs-only"><label for="crystal" data-i18n="crystal"></label><select id="crystal"><option value="" data-i18n="all"></option></select></div>
+      <div class="xafs-only"><label for="mtype" data-i18n="mtype"></label><select id="mtype"><option value="" data-i18n="all"></option></select></div>
+    </div>
+    <div class="status" id="status"></div>
+    <div class="list">
+      <table>
+        <thead id="thead"></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+    <h2 style="margin-top:14px" data-i18n="step3"></h2>
+    <div class="cart" id="cart"></div>
+    <div class="btns">
+      <button type="button" class="primary" id="dlzip" disabled data-i18n="dlzip"></button>
+      <button type="button" id="dlcsv" disabled data-i18n="dlcsv"></button>
+      <button type="button" id="cite" disabled data-i18n="cite"></button>
+      <button type="button" id="clearSel" disabled data-i18n="clearSel"></button>
+    </div>
+    <p class="hint" data-i18n="dlHint"></p>
+  </section>
+</main>
+
+<footer id="footer"></footer>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const API = "https://api.datacite.org/dois";
+  const FIELDS = "doi,titles,subjects,url,publisher,publicationYear";
+
+  // ---- 表示文言（日本語／英語）----
+  const I18N = {
+    ja: {
+      title: "標準試料スペクトル検索", badge: "試作版", docTitle: "標準試料スペクトル検索（試作）", langBtn: "English",
+      lead: "NIMS MDR に登録された XAFS／HAXPES 標準試料を DOI 登録情報（DataCite）から、または各国の XAFS データベースを International XAFS DB Portal（IXDB）の知識グラフから検索します。データ本体は選んだ試料だけ各データベースから直接取得します。",
+      tabIXDB: "IXDB（XAFS 国際横断）", tabXAFS: "MDR（XAFS）", tabHAXPES: "MDR（HAXPES）", methodAria: "データソース",
+      facility: "施設", database: "データベース", allFacs: "すべての施設", allDbs: "すべてのデータベース",
+      haxpesFac: "SPring-8（BL46XU, JASRI）", unknownFac: "施設不明",
+      step1: "① 元素を選ぶ", step2: "② 試料を選ぶ", step3: "③ ダウンロード", ptAria: "周期表",
+      qLabel: "試料名・組成式で絞り込み", qPh: "例：oxide, NiO, Alloy",
+      edge: "吸収端", crystal: "分光結晶", mtype: "分類", all: "すべて",
+      pickElement: "左の周期表から元素を選んでください", loading: "登録データを読み込み中…",
+      searching: "{el} を検索中…", searchFail: "検索に失敗しました：{msg}", loadFail: "読み込みに失敗しました：{msg}",
+      apiErr: "DataCite API エラー（{s}）", ixdbErr: "IXDB 索引（ixdb_index.js）を読み込めませんでした",
+      count: "{src}・{el}：{n} 件{mat}{scope}", mats: "・{n} 物質",
+      scopeAllDb: "（全データベース）", scopeAllFac: "（全施設）", scopeOne: "（{x}）",
+      thSample: "試料", thFormula: "組成", thEdge: "吸収端", thCrystal: "結晶", thFacBl: "施設 / BL", thData: "データ",
+      thMaterial: "物質（代表名）", thOrig: "元の名称", thDb: "データベース",
+      none: "該当する試料がありません", select: "選択", openIn: "{db} で開く",
+      doiTitle: "doi:{doi}（MDR のページが開くまで 1 分近くかかる場合があります）",
+      cartEmpty: "一覧のチェックボックスで試料を選ぶと、ここにまとめて表示されます。",
+      dlzip: "選択した試料を zip でダウンロード（MDR 分）", dlcsv: "選択リストを CSV 保存（DOI・URL）",
+      cite: "引用文をコピー", copied: "コピーしました", citePrompt: "引用文", clearSel: "選択解除",
+      dlHint: "zip は MDR から直接配信されます（MDR の応答により 1 件 30 秒程度かかる場合があります）。選択はタブ・施設を切り替えても保持されます。",
+      ptHintHx: "色付き：HAXPES 標準試料（SPring-8 BL46XU）の登録元素",
+      ptHintIx: "色付き：選択中のデータベースで登録のある吸収元素（IXDB 索引 {date} 時点）",
+      ptHintMdr: "色付き：選択中の施設で登録のある元素（2026-10-22 時点）。その他の元素も検索できます",
+      footIx: `検索：International XAFS DB Portal（<a href="https://ixdb.jxafs.org/" target="_blank" rel="noopener">ixdb.jxafs.org</a>、NIMS）の知識グラフ（SPARQL）から作成した索引（{date} 時点）。索引の元データ：M. Ishii et al.「International XAFS DB RDF and Ontology」（<a href="https://doi.org/10.48505/nims.5513" target="_blank" rel="noopener">doi:10.48505/nims.5513</a>、<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>）。
+        データの利用条件・引用は各データベースの規定に従ってください。IXDB を引用する場合：M. Ishii et al., <i>J. Synchrotron Rad.</i> <b>32</b> (2025), <a href="https://doi.org/10.1107/S1600577525002206" target="_blank" rel="noopener">doi:10.1107/S1600577525002206</a>。<br>
+        <span class="note">※試作版。同じ物質は MatVoc の物質 ID でまとめ、代表名は MDR の名称（なければ最頻の名称）を表示しています。</span>`,
+      footMdr: `データ出典：NIMS Materials Data Repository「{db}」（<a href="https://doi.org/{dbDoi}" target="_blank" rel="noopener">doi:{dbDoi}</a>）。
+        ライセンス：各データの表示に従う（JASRI 提供分は <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>）。
+        検索：<a href="https://support.datacite.org/docs/api" target="_blank" rel="noopener">DataCite REST API</a>。{extra}<br>
+        <span class="note">※試作版。表示内容は DOI 登録時のメタデータに基づきます。</span>`,
+      citeXafs: "SPring-8 BL14B2 のデータを論文等で利用する際は、各データの DOI と Ofuchi, Matsumoto, Honma, <i>Radiat. Phys. Chem.</i> <b>218</b> (2024) 111581 を引用してください。他施設のデータは各施設の引用ルールに従ってください。",
+      citeHaxpes: "論文等で利用する際は、各データの DOI と HAXPES 標準試料データベース（S. Yasuno et al.）を引用してください。",
+    },
+    en: {
+      title: "Reference Spectra Search", badge: "Prototype", docTitle: "Reference Spectra Search (prototype)", langBtn: "日本語",
+      lead: "Search XAFS/HAXPES reference samples registered in NIMS MDR via their DOI metadata (DataCite), or XAFS databases worldwide via the knowledge graph of the International XAFS DB Portal (IXDB). Data files are retrieved directly from each database, only for the samples you select.",
+      tabIXDB: "IXDB (XAFS, international)", tabXAFS: "MDR (XAFS)", tabHAXPES: "MDR (HAXPES)", methodAria: "Data source",
+      facility: "Facility", database: "Database", allFacs: "All facilities", allDbs: "All databases",
+      haxpesFac: "SPring-8 (BL46XU, JASRI)", unknownFac: "facility unknown",
+      step1: "1. Select an element", step2: "2. Select samples", step3: "3. Download", ptAria: "Periodic table",
+      qLabel: "Filter by sample name or formula", qPh: "e.g. oxide, NiO, Alloy",
+      edge: "Absorption edge", crystal: "Monochromator crystal", mtype: "Category", all: "All",
+      pickElement: "Select an element in the periodic table", loading: "Loading records…",
+      searching: "Searching {el}…", searchFail: "Search failed: {msg}", loadFail: "Failed to load: {msg}",
+      apiErr: "DataCite API error ({s})", ixdbErr: "Could not load the IXDB index (ixdb_index.js)",
+      count: "{src} · {el}: {n} records{mat}{scope}", mats: " · {n} materials",
+      scopeAllDb: " (all databases)", scopeAllFac: " (all facilities)", scopeOne: " ({x})",
+      thSample: "Sample", thFormula: "Formula", thEdge: "Edge", thCrystal: "Crystal", thFacBl: "Facility / BL", thData: "Data",
+      thMaterial: "Material (representative name)", thOrig: "Original name", thDb: "Database",
+      none: "No matching samples", select: "Select", openIn: "Open in {db}",
+      doiTitle: "doi:{doi} (the MDR page may take up to a minute to open)",
+      cartEmpty: "Samples you tick in the list are collected here.",
+      dlzip: "Download selected as zip (MDR records)", dlcsv: "Save selection as CSV (DOI, URL)",
+      cite: "Copy citations", copied: "Copied", citePrompt: "Citations", clearSel: "Clear selection",
+      dlHint: "Zip files are served directly by MDR (each may take about 30 s depending on MDR). Your selection is kept when you switch tabs or facilities.",
+      ptHintHx: "Highlighted: elements with HAXPES reference samples (SPring-8 BL46XU)",
+      ptHintIx: "Highlighted: absorbing elements registered in the selected database (IXDB index as of {date})",
+      ptHintMdr: "Highlighted: elements registered at the selected facility (as of 2026-10-22). Other elements can also be searched",
+      footIx: `Search: index built from the knowledge graph (SPARQL) of the International XAFS DB Portal (<a href="https://ixdb.jxafs.org/" target="_blank" rel="noopener">ixdb.jxafs.org</a>, NIMS), as of {date}. Index source data: M. Ishii et al., "International XAFS DB RDF and Ontology" (<a href="https://doi.org/10.48505/nims.5513" target="_blank" rel="noopener">doi:10.48505/nims.5513</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>).
+        Follow each database's terms of use and citation rules. To cite IXDB: M. Ishii et al., <i>J. Synchrotron Rad.</i> <b>32</b> (2025), <a href="https://doi.org/10.1107/S1600577525002206" target="_blank" rel="noopener">doi:10.1107/S1600577525002206</a>.<br>
+        <span class="note">Prototype. Records of the same material are grouped by MatVoc material ID; the representative name is the MDR name (or the most frequent name).</span>`,
+      footMdr: `Data source: NIMS Materials Data Repository "{db}" (<a href="https://doi.org/{dbDoi}" target="_blank" rel="noopener">doi:{dbDoi}</a>).
+        License: as stated for each dataset (data provided by JASRI: <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>).
+        Search: <a href="https://support.datacite.org/docs/api" target="_blank" rel="noopener">DataCite REST API</a>. {extra}<br>
+        <span class="note">Prototype. Information shown is based on the metadata registered with each DOI.</span>`,
+      citeXafs: "When using SPring-8 BL14B2 data in publications, cite the DOI of each dataset and Ofuchi, Matsumoto, Honma, <i>Radiat. Phys. Chem.</i> <b>218</b> (2024) 111581. For other facilities, follow their citation rules.",
+      citeHaxpes: "When using the data in publications, cite the DOI of each dataset and the HAXPES reference sample database (S. Yasuno et al.).",
+    },
+  };
+  const LANGS = Object.keys(I18N);
+  let lang = (() => {
+    const q = new URLSearchParams(location.search).get("lang");
+    if (LANGS.includes(q)) return q;
+    try { const s = localStorage.getItem("refspec-lang"); if (LANGS.includes(s)) return s; } catch {}
+    return "ja";
+  })();
+  const t = (k, v = {}) => (I18N[lang][k] ?? I18N.ja[k] ?? k).replace(/\{(\w+)\}/g, (_, n) => v[n] ?? "");
+  const L = o => (typeof o === "string" ? o : o[lang] ?? o.ja);
+
+  // 施設（DataCite の publisher）→ 表示名と、2026-10-22 時点で DataCite に登録のある元素（周期表の色付け用）
+  const FACILITIES = {
+    "SPring-8": { short: { ja: "SPring-8", en: "SPring-8" }, long: { ja: "SPring-8（BL14B2, JASRI）", en: "SPring-8 (BL14B2, JASRI)" },
+      els: "Ag Au Ba Ce Co Cr Cs Cu Er Eu Fe In Ir La Mn Mo Nb Nd Ni Pb Pd Pt Rh Ru Sb Sn Ta Tb Ti V W Yb Zn Zr" },
+    "KEK": { short: { ja: "KEK フォトンファクトリー", en: "KEK Photon Factory" },
+      els: "Au Ba Ce Co Cr Cs Cu Fe I In Ir Mn Mo Nb Ni Pd Pt Re Rh Ru S Se Ti Zn Zr" },
+    "Hokkaido University": { short: { ja: "北海道大学 触媒科学研究所", en: "Hokkaido Univ., Inst. for Catalysis" },
+      els: "Ag Au Ce Co Cr Cu Fe In Ir Mn Mo Nb Ni Pd Pt Re Rh Ru Sn Ta Ti Zn" },
+    "Ritsumeikan University": { short: { ja: "立命館大学 SR センター", en: "Ritsumeikan Univ. SR Center" },
+      els: "Al B C Ca Cl Cu F Fe K Li Mg N Na Ni O P S Si Ti" },
+    "Aichi Synchrotron Radiation Center": { short: { ja: "あいちシンクロトロン光センター", en: "Aichi Synchrotron Radiation Center" },
+      els: "Ag Au Bi Ce Co Cr Cu Eu Fe Ga Ge Ir Mn Mo Nb Ni Pb Pd Pt Rh Ru Ta Ti V W Y Zn Zr" },
+    "Kyushu Synchrotron Light Research Center": { short: { ja: "九州シンクロトロン光研究センター", en: "Kyushu Synchrotron Light Research Center" },
+      els: "B C Ca Cl Co K N Ni O P S Ti" },
+  };
+  const facShort = key => FACILITIES[key] ? L(FACILITIES[key].short) : key;
+  const facLong = key => FACILITIES[key] ? L(FACILITIES[key].long || FACILITIES[key].short) : key;
+  const CLASSES = new Set(["Oxide", "Pure metal", "Oxide_ate", "Chloride", "Alloy", "Sulfide", "Fluoride", "Sulfate", "Bromide", "Nitrate",
+    "Hydroxide", "Boride", "Nitride", "Iodide", "Organometal", "Silicide", "Carbide", "Carbonate", "Oxalate", "Hydride", "Acetate",
+    "Acetylacetonate", "Phosphorate", "Chlorate", "Metal acid", "Phosphide", "Phthalocyanine", "Silicate", "Hexafluoride", "Phosphate",
+    "Oxynitride", "Oxychloride", "Nonmetal", "Pure metalloid"]);
+  const METHODS = {
+    XAFS: { collection: "collection - MDR XAFS DB", dbDoi: "10.48505/nims.1447", dbName: "MDR XAFS DB" },
+    HAXPES: { collection: "collection - MDR HAXPES DB", dbDoi: "10.48505/nims.3056", dbName: "MDR HAXPES DB" },
+  };
+  // IXDB が横断する各国データベース（tools/build_ixdb_index.py の db コード）
+  const IXDB_DBS = {
+    MDR: { ja: "MDR XAFS DB（日本）", en: "MDR XAFS DB (Japan)" },
+    CLS: { ja: "CLS XAS Database（カナダ）", en: "CLS XAS Database (Canada)" },
+    FAME: { ja: "SSHADE/FAME（フランス）", en: "SSHADE/FAME (France)" },
+    XASLIB: { ja: "XASLIB（米国）", en: "XASLIB (USA)" },
+    LISA: { ja: "LISA XAS Database（イタリア）", en: "LISA XAS Database (Italy)" },
+    IHEP: { ja: "XASDB（中国 IHEP）", en: "XASDB (China, IHEP)" },
+    ESRF: { ja: "ESRF ID21 XANES（フランス）", en: "ESRF ID21 XANES (France)" },
+  };
+  const dbName = code => IXDB_DBS[code] ? L(IXDB_DBS[code]) : code;
+  const PT = "H,1,1 He,1,18 Li,2,1 Be,2,2 B,2,13 C,2,14 N,2,15 O,2,16 F,2,17 Ne,2,18 Na,3,1 Mg,3,2 Al,3,13 Si,3,14 P,3,15 S,3,16 Cl,3,17 Ar,3,18 K,4,1 Ca,4,2 Sc,4,3 Ti,4,4 V,4,5 Cr,4,6 Mn,4,7 Fe,4,8 Co,4,9 Ni,4,10 Cu,4,11 Zn,4,12 Ga,4,13 Ge,4,14 As,4,15 Se,4,16 Br,4,17 Kr,4,18 Rb,5,1 Sr,5,2 Y,5,3 Zr,5,4 Nb,5,5 Mo,5,6 Tc,5,7 Ru,5,8 Rh,5,9 Pd,5,10 Ag,5,11 Cd,5,12 In,5,13 Sn,5,14 Sb,5,15 Te,5,16 I,5,17 Xe,5,18 Cs,6,1 Ba,6,2 La,6,3 Hf,6,4 Ta,6,5 W,6,6 Re,6,7 Os,6,8 Ir,6,9 Pt,6,10 Au,6,11 Hg,6,12 Tl,6,13 Pb,6,14 Bi,6,15 Po,6,16 At,6,17 Rn,6,18 Ce,8,4 Pr,8,5 Nd,8,6 Pm,8,7 Sm,8,8 Eu,8,9 Gd,8,10 Tb,8,11 Dy,8,12 Ho,8,13 Er,8,14 Tm,8,15 Yb,8,16 Lu,8,17 Th,9,4 U,9,6"
+    .split(" ").map(s => s.split(","));
+  const SYMBOLS = new Set(PT.map(p => p[0]));
+
+  const state = { method: "", facility: "", el: null, recs: [], cart: new Map(), haxpes: null, ixdb: null, status: { key: "pickElement" } };
+  const cache = new Map();
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  // 状態メッセージは「キー＋値」で持ち、言語切替時に再表示できるようにする
+  function setStatus(key, vars = {}, err = false) {
+    state.status = { key, vars, err };
+    $("status").className = "status" + (err ? " err" : "");
+    $("status").textContent = t(key, vars);
+  }
+
+  // ---- 周期表 ----
+  for (const [sym, p, g] of PT) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "el"; b.textContent = sym;
+    b.style.gridRow = p; b.style.gridColumn = g; b.dataset.sym = sym;
+    b.onclick = () => selectElement(sym);
+    $("ptable").appendChild(b);
+  }
+
+  function availableElements() {
+    if (state.method === "HAXPES") return new Set((state.haxpes || []).flatMap(r => r.elements));
+    if (state.method === "IXDB") return new Set((state.ixdb || []).filter(matchFacility).map(x => x.el));
+    const facs = state.facility ? [state.facility] : Object.keys(FACILITIES);
+    return new Set(facs.flatMap(f => FACILITIES[f].els.split(" ")));
+  }
+  function paintTable() {
+    const av = availableElements();
+    document.querySelectorAll(".el").forEach(b => {
+      b.classList.toggle("avail", av.has(b.dataset.sym));
+      b.classList.toggle("sel", b.dataset.sym === state.el);
+    });
+    $("ptHint").textContent = state.method === "HAXPES" ? t("ptHintHx")
+      : state.method === "IXDB" ? t("ptHintIx", { date: ixdbGenerated() }) : t("ptHintMdr");
+  }
+
+  // ---- DataCite レコード → 表示用（キーワードの並び順に依存しない）----
+  const EDGE = /^([A-Z][a-z]?) (K|L\d*|M\d*)-edge$/;
+  function toRecord(item) {
+    const a = item.attributes;
+    const subj = (a.subjects || []).map(s => s.subject);
+    // titles には正式タイトルと別名（"spring8.<id>" など、titleType=AlternativeTitle）があり、順序は不定
+    const titles = a.titles || [];
+    const title = (titles.find(x => !x.titleType) || titles[0] || {}).title || "";
+    const uuid = (a.url || "").split("/").pop();
+    // DataCite の url は /pid/{id}（MDR 側で /datasets/{id} へ転送され、それだけで 30 秒程度かかる）なので直接 /datasets/ を使う
+    const base = { doi: a.doi, page: uuid ? `https://mdr.nims.go.jp/datasets/${uuid}` : a.url, zip: uuid ? `https://mdr.nims.go.jp/datasets/${uuid}.zip` : "",
+      publisher: a.publisher, year: a.publicationYear, keywords: subj.join(" ") };
+    if (state.method === "HAXPES" || subj.includes("HAXPES")) {
+      const name = title.replace(/^HAXPES spectra of /, "");
+      const tok = name.split(/\s+/).find(w => /^([A-Z][a-z]?)+$/.test(w) && splitFormula(w).every(s => SYMBOLS.has(s))) || "";
+      return { ...base, method: "HAXPES", name, elements: splitFormula(tok), facilityKey: "SPring-8",
+        beamline: subj.find(s => /^BL/.test(s)) || "", edge: "", crystal: "", mtype: "", formula: "" };
+    }
+    const edge = subj.find(s => EDGE.test(s)) || "";
+    const crystal = subj.find(s => /^Si\(\d+\)$/.test(s)) || "";
+    const mtype = subj.find(s => CLASSES.has(s)) || "";
+    const beamline = subj.find(s => /^(BL[-\w]*|AR-\w+)$/.test(s)) || "";
+    const name = title.startsWith("XAFS spectrum of ") ? title.slice(17) : title;
+    const skip = new Set([edge, crystal, mtype, beamline, name, "XAFS", "SPring-8", METHODS.XAFS.collection]);
+    const cands = subj.filter(s => !skip.has(s) && !/\s/.test(s.replace(/^approx\.\s/, "")) && !CLASSES.has(s) && !/^(Photon|Aichi|SAGA|Ritsumeikan|Hokkaido)/.test(s));
+    const formula = cands.find(s => /\d/.test(s)) || cands.find(s => /^[A-Z][a-z]?(-foil)?$/.test(s)) || cands[0] || "";
+    return { ...base, method: "XAFS", name, formula: formula.replace(/_/g, "·"), edge, crystal, mtype: mtype.replace(/_/g, " "),
+      beamline, facilityKey: a.publisher, element: (edge.match(EDGE) || [])[1] || "" };
+  }
+  function splitFormula(s) { return (s.match(/[A-Z][a-z]?/g) || []); }
+
+  async function query(q) {
+    const params = new URLSearchParams({ query: q, "page[size]": "1000", "fields[dois]": FIELDS });
+    const r = await fetch(`${API}?${params}`, { headers: { Accept: "application/vnd.api+json" } });
+    if (!r.ok) throw new Error(t("apiErr", { s: r.status }));
+    return (await r.json()).data || [];
+  }
+
+  async function loadHaxpes() {
+    if (state.haxpes) return state.haxpes;
+    const items = await query(`subjects.subject:"${METHODS.HAXPES.collection}"`);
+    state.haxpes = items.map(toRecord);
+    return state.haxpes;
+  }
+
+  const ixdbGenerated = () => (window.IXDB_INDEX || {}).generated || "";
+  function loadIxdb() {
+    if (state.ixdb) return Promise.resolve(state.ixdb);
+    return new Promise((ok, ng) => {
+      const sc = document.createElement("script");
+      sc.src = "ixdb_index.js";
+      sc.onload = () => {
+        state.ixdb = (window.IXDB_INDEX?.records || []).map(x => {
+          const uuid = x.db === "MDR" ? x.url.split("/").pop() : "";
+          return { method: "IXDB", doi: x.doi || x.url, realDoi: x.doi, name: x.group, orig: x.name !== x.group ? x.name : "",
+            title: x.title, edge: x.edge, el: x.el, db: x.db, fac: x.fac || "", beamline: x.bl || "",
+            facilityKey: x.db === "MDR" ? `MDR|${x.fac || ""}` : x.db, page: x.url,
+            zip: uuid ? `https://mdr.nims.go.jp/datasets/${uuid}.zip` : "", formula: "", crystal: "", mtype: "",
+            keywords: `${x.group} ${x.name} ${x.title} ${x.edge}`, mat: x.mat };
+        });
+        ok(state.ixdb);
+      };
+      sc.onerror = () => ng(new Error(t("ixdbErr")));
+      document.head.appendChild(sc);
+    });
+  }
+
+  async function fetchXafs(sym) {
+    if (cache.has(sym)) return cache.get(sym);
+    const edges = ["K", "L1", "L2", "L3", "L21", "L"].map(e => `"${sym} ${e}-edge"`).join(" OR ");
+    const items = await query(`subjects.subject:"${METHODS.XAFS.collection}" AND subjects.subject:(${edges})`);
+    const recs = items.map(toRecord).filter(r => r.element === sym);
+    cache.set(sym, recs);
+    return recs;
+  }
+
+  async function selectElement(sym) {
+    state.el = sym; paintTable();
+    setStatus("searching", { el: sym });
+    $("rows").innerHTML = "";
+    try {
+      const recs = state.method === "HAXPES" ? (await loadHaxpes()).filter(r => r.elements.includes(sym))
+        : state.method === "IXDB" ? (await loadIxdb()).filter(r => r.el === sym)
+        : await fetchXafs(sym);
+      if (state.el !== sym) return;
+      state.recs = recs;
+      ["edge", "crystal", "mtype"].forEach(k => fillSelect(k, k));
+      render();
+    } catch (e) {
+      setStatus("searchFail", { msg: e.message }, true);
+    }
+  }
+
+  function fillSelect(id, key) {
+    const sel = $(id), cur = sel.value;
+    sel.length = 1;
+    sel.options[0].textContent = t("all");
+    [...new Set(visibleByFacility().map(r => r[key]).filter(Boolean))].sort().forEach(v => sel.add(new Option(v, v)));
+    sel.value = [...sel.options].some(o => o.value === cur) ? cur : "";
+  }
+  // IXDB の施設選択値："MDR" は MDR 全体、"MDR|<施設>" は MDR のうちその施設
+  const matchFacility = r => !state.facility || r.facilityKey === state.facility
+    || (state.method === "IXDB" && state.facility === "MDR" && r.db === "MDR");
+  const visibleByFacility = () => state.recs.filter(matchFacility);
+  const facLabel = r => r.method === "IXDB"
+    ? (r.db === "MDR" ? `MDR: ${r.fac ? facShort(r.fac) : t("unknownFac")}` : dbName(r.db))
+    : facShort(r.facilityKey) || r.publisher;
+  const scopeLabel = () => state.facility.startsWith("MDR|")
+    ? `MDR XAFS DB: ${facShort(state.facility.slice(4))}` : dbName(state.facility);
+
+  function filtered() {
+    const q = $("q").value.trim().toLowerCase();
+    const hit = r => `${r.name} ${r.formula} ${r.keywords}`.toLowerCase().includes(q);
+    // IXDB では同じ物質（MatVoc ID）のどれか 1 件が一致すれば、その物質の全データベース分を表示
+    const mats = state.method === "IXDB" && q ? new Set(state.recs.filter(r => r.mat && hit(r)).map(r => r.mat)) : null;
+    return visibleByFacility().filter(r =>
+      (!$("edge").value || r.edge === $("edge").value) &&
+      (!$("crystal").value || r.crystal === $("crystal").value) &&
+      (!$("mtype").value || r.mtype === $("mtype").value) &&
+      (!q || hit(r) || (mats && mats.has(r.mat))))
+      .sort((x, y) => x.name.localeCompare(y.name) || x.edge.localeCompare(y.edge) || x.crystal.localeCompare(y.crystal) || facLabel(x).localeCompare(facLabel(y)));
+  }
+
+  function render() {
+    const hx = state.method === "HAXPES", ix = state.method === "IXDB";
+    const th = keys => "<tr><th></th>" + keys.map(k => `<th>${esc(t(k))}</th>`).join("") + "</tr>";
+    $("thead").innerHTML = hx ? th(["thSample", "thFacBl", "thData"])
+      : ix ? th(["thMaterial", "thOrig", "thEdge", "thDb", "thData"])
+      : th(["thSample", "thFormula", "thEdge", "thCrystal", "thFacBl", "thData"]);
+    if (!state.el) { $("rows").innerHTML = ""; if (!state.status.err && state.status.key !== "loading") setStatus("pickElement"); return; }
+    const list = filtered();
+    const scope = hx ? "" : ix ? (state.facility ? t("scopeOne", { x: scopeLabel() }) : t("scopeAllDb"))
+      : state.facility ? t("scopeOne", { x: facLong(state.facility) }) : t("scopeAllFac");
+    const mat = ix ? t("mats", { n: new Set(list.map(r => r.mat || r.name)).size }) : "";
+    setStatus("count", { src: ix ? "IXDB" : state.method, el: state.el, n: list.length, mat, scope });
+    $("rows").innerHTML = list.map(r => `
+      <tr class="${state.cart.has(r.doi) ? "on" : ""}">
+        <td><input type="checkbox" data-doi="${esc(r.doi)}" ${state.cart.has(r.doi) ? "checked" : ""} aria-label="${esc(t("select"))}"></td>
+        <td>${esc(r.name)}</td>
+        ${ix ? `<td>${esc(r.orig || "")}</td><td class="nw">${esc(r.edge)}</td>`
+          : hx ? "" : `<td>${esc(r.formula)}</td><td class="nw">${esc(r.edge)}</td><td class="nw">${esc(r.crystal)}</td>`}
+        <td>${esc(facLabel(r))}${r.beamline ? ` / ${esc(r.beamline)}` : ""}</td>
+        <td class="links">${linksHtml(r)}</td>
+      </tr>`).join("") || `<tr><td colspan="7" class="empty">${esc(t("none"))}</td></tr>`;
+    document.querySelectorAll("#rows input[type=checkbox]").forEach(cb => cb.onchange = () => {
+      const r = state.recs.find(x => x.doi === cb.dataset.doi);
+      cb.checked ? state.cart.set(r.doi, r) : state.cart.delete(r.doi);
+      render(); renderCart();
+    });
+  }
+
+  const describe = r => r.method === "HAXPES" ? `HAXPES, ${facLabel(r)} ${r.beamline}` : `${r.edge}, ${r.crystal ? r.crystal + ", " : ""}${facLabel(r)}`;
+  function linksHtml(r) {
+    if (r.method === "IXDB" && r.db !== "MDR") return `<a href="${esc(r.page)}" target="_blank" rel="noopener">${esc(t("openIn", { db: r.db }))}</a>`;
+    const doi = r.realDoi ?? r.doi;
+    // DOI と MDR ページは同じ所に着くので DOI に一本化（DOI が無いときだけ MDR ページへ直接リンク）
+    const page = doi
+      ? `<a href="https://doi.org/${esc(doi)}" target="_blank" rel="noopener" title="${esc(t("doiTitle", { doi }))}">DOI</a>`
+      : `<a href="${esc(r.page)}" target="_blank" rel="noopener">MDR</a>`;
+    return `${page}<a href="${esc(r.zip)}">zip</a>`;
+  }
+  function renderCart() {
+    const items = [...state.cart.values()];
+    ["dlzip", "dlcsv", "cite", "clearSel"].forEach(id => $(id).disabled = !items.length);
+    $("cart").innerHTML = items.length
+      ? `<ul>${items.map(r => `<li>${esc(r.name)} (${esc(describe(r))}) — ${linksHtml(r)}</li>`).join("")}</ul>`
+      : `<p class="hint">${esc(t("cartEmpty"))}</p>`;
+  }
+
+  function renderFooter() {
+    if (state.method === "IXDB") { $("footer").innerHTML = t("footIx", { date: esc(ixdbGenerated()) }); return; }
+    const m = METHODS[state.method];
+    $("footer").innerHTML = t("footMdr", { db: m.dbName, dbDoi: m.dbDoi, extra: t(state.method === "XAFS" ? "citeXafs" : "citeHaxpes") });
+  }
+
+  function fillFacility() {
+    const sel = $("facility");
+    sel.length = 0;
+    $("facilityLabel").textContent = t(state.method === "IXDB" ? "database" : "facility");
+    if (state.method === "HAXPES") {
+      sel.add(new Option(t("haxpesFac"), "")); sel.disabled = true;
+    } else if (state.method === "IXDB") {
+      sel.disabled = false;
+      sel.add(new Option(t("allDbs"), ""));
+      Object.keys(IXDB_DBS).forEach(k => {
+        sel.add(new Option(dbName(k), k));
+        if (k === "MDR") Object.keys(FACILITIES).forEach(fk => sel.add(new Option(`　└ ${facShort(fk)}`, `MDR|${fk}`)));
+      });
+      sel.value = state.facility;
+    } else {
+      sel.disabled = false;
+      sel.add(new Option(t("allFacs"), ""));
+      Object.keys(FACILITIES).forEach(k => sel.add(new Option(facLong(k), k)));
+      sel.value = state.facility;
+    }
+  }
+
+  // ---- 言語 ----
+  function applyLang() {
+    document.documentElement.lang = lang;
+    document.title = t("docTitle");
+    document.querySelectorAll("[data-i18n]").forEach(e => e.textContent = t(e.dataset.i18n));
+    document.querySelectorAll("[data-i18n-ph]").forEach(e => e.placeholder = t(e.dataset.i18nPh));
+    document.querySelectorAll("[data-i18n-aria]").forEach(e => e.setAttribute("aria-label", t(e.dataset.i18nAria)));
+    $("lang").textContent = t("langBtn");
+    if (state.method) {
+      fillFacility(); renderFooter(); paintTable(); render(); renderCart();
+      $("status").textContent = t(state.status.key, state.status.vars);
+    }
+  }
+  $("lang").onclick = () => {
+    lang = lang === "ja" ? "en" : "ja";
+    try { localStorage.setItem("refspec-lang", lang); } catch {}
+    applyLang();
+  };
+
+  // ---- 切り替え ----
+  async function setMethod(m) {
+    if (state.method === m) return;
+    state.method = m; state.facility = ""; state.el = null; state.recs = [];
+    document.querySelectorAll("#method button").forEach(x => x.classList.toggle("on", x.dataset.v === m));
+    document.querySelectorAll(".xafs-only").forEach(x => x.classList.toggle("hide",
+      state.method === "HAXPES" || (state.method === "IXDB" && !x.querySelector("#edge"))));
+    ["edge", "crystal", "mtype"].forEach(id => $(id).value = "");
+    fillFacility(); renderFooter(); setStatus("pickElement"); render();
+    if (state.method === "HAXPES" || state.method === "IXDB") {
+      setStatus("loading");
+      try { await (state.method === "HAXPES" ? loadHaxpes() : loadIxdb()); setStatus("pickElement"); renderFooter(); }
+      catch (e) { setStatus("loadFail", { msg: e.message }, true); }
+    }
+    paintTable();
+  }
+  document.querySelectorAll("#method button").forEach(b => b.onclick = () => setMethod(b.dataset.v));
+  $("facility").onchange = () => {
+    state.facility = $("facility").value; paintTable();
+    ["edge", "crystal", "mtype"].forEach(k => fillSelect(k, k)); render();
+  };
+  $("q").oninput = render;
+  ["edge", "crystal", "mtype"].forEach(id => $(id).onchange = render);
+
+  $("dlzip").onclick = async () => {
+    // ブラウザの複数ダウンロード制限を避けるため、少し間隔をあけて順に開始
+    for (const r of [...state.cart.values()].filter(r => r.zip)) {
+      const a = document.createElement("a"); a.href = r.zip; a.rel = "noopener";
+      document.body.appendChild(a); a.click(); a.remove();
+      await new Promise(res => setTimeout(res, 1500));
+    }
+  };
+  $("dlcsv").onclick = () => {
+    const rows = [["source", "name", "formula", "edge", "crystal", "facility_or_db", "beamline", "doi", "doi_url", "page_url", "zip_url"]]
+      .concat([...state.cart.values()].map(r => {
+        const doi = r.realDoi ?? r.doi;
+        return [r.method, r.name, r.formula, r.edge, r.crystal, r.method === "IXDB" ? L(IXDB_DBS[r.db] || r.db) + (r.fac ? ` / ${r.fac}` : "") : r.publisher, r.beamline, doi, doi ? `https://doi.org/${doi}` : "", r.page, r.zip];
+      }));
+    const csv = "﻿" + rows.map(row => row.map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\r\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    a.download = "standard_spectra_selected.csv"; a.click(); URL.revokeObjectURL(a.href);
+  };
+  $("cite").onclick = async () => {
+    // 引用文は論文で使うため常に英語
+    const items = [...state.cart.values()];
+    const lines = items.map(r => {
+      if (r.method === "IXDB") return `${r.title} (${r.edge}), ${IXDB_DBS[r.db]?.en || r.db}, ${r.realDoi ? "https://doi.org/" + r.realDoi : r.page}`;
+      const fac = FACILITIES[r.facilityKey]?.short.en || r.publisher;
+      const desc = r.method === "HAXPES" ? `HAXPES, ${fac} ${r.beamline}` : `${r.edge}, ${r.crystal ? r.crystal + ", " : ""}${fac}`;
+      return `${r.method} spectrum of ${r.name} (${desc}), ${METHODS[r.method].dbName}, https://doi.org/${r.doi}`;
+    });
+    if (items.some(r => r.method === "IXDB")) lines.push("M. Ishii et al., J. Synchrotron Rad. 32 (2025), https://doi.org/10.1107/S1600577525002206 (International XAFS DB Portal).");
+    if (items.some(r => r.method === "XAFS" && r.facilityKey === "SPring-8")) lines.push("Ofuchi, Matsumoto, Honma, Radiat. Phys. Chem. 218 (2024) 111581.");
+    try { await navigator.clipboard.writeText(lines.join("\n")); $("cite").textContent = t("copied"); }
+    catch { prompt(t("citePrompt"), lines.join(" / ")); }
+    setTimeout(() => $("cite").textContent = t("cite"), 1500);
+  };
+  $("clearSel").onclick = () => { state.cart.clear(); render(); renderCart(); };
+
+  applyLang();
+  renderCart();
+  setMethod("IXDB");
+})();
+</script>
+</body>
+</html>
