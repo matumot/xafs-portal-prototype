@@ -74,6 +74,12 @@
   .empty { color: var(--muted); padding: 24px 0; text-align: center; }
   footer { padding: 0 20px 24px; color: var(--muted); font-size: 12px; line-height: 1.6; }
   .note { color: var(--warn); }
+  .related { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); font-size: 12.5px; }
+  .related h3 { font-size: 13px; margin: 0 0 4px; color: var(--accent); }
+  .related ul { margin: 4px 0; padding-left: 18px; }
+  .related li { margin-bottom: 3px; }
+  .related .muted { color: var(--muted); }
+  .linkbtn { font: inherit; padding: 0; border: none; background: none; color: var(--accent); text-decoration: underline; cursor: pointer; }
   .topline { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
   .lang { font: inherit; font-size: 12.5px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 14px;
     background: var(--panel); color: var(--ink); cursor: pointer; white-space: nowrap; }
@@ -104,6 +110,7 @@
     <h2 data-i18n="step1"></h2>
     <div class="ptable" id="ptable" data-i18n-aria="ptAria"></div>
     <p class="hint" id="ptHint"></p>
+    <div class="related" id="related"></div>
   </section>
 
   <section class="panel">
@@ -179,6 +186,10 @@
         <span class="note">※試作版。表示内容は DOI 登録時のメタデータに基づきます。</span>`,
       citeXafs: "SPring-8 BL14B2 のデータを論文等で利用する際は、各データの DOI と Ofuchi, Matsumoto, Honma, <i>Radiat. Phys. Chem.</i> <b>218</b> (2024) 111581 を引用してください。他施設のデータは各施設の引用ルールに従ってください。",
       citeHaxpes: "論文等で利用する際は、各データの DOI と HAXPES 標準試料データベース（S. Yasuno et al.）を引用してください。",
+      relTitle: "関連情報", relSim: "XAFS シミュレーションスペクトル", relHaxpes: "HAXPES スペクトル", relCryst: "結晶情報",
+      relPhase: "状態図", relProp: "物性情報", relLogin: "（要ログイン）",
+      relHaxpesBtn: "{el} の HAXPES データを見る（{n} 件）",
+      relNote: "International XAFS DB Portal と同じ補足情報です。外部サイトはトップページまたは検索ページを開きます。",
     },
     en: {
       title: "Reference Spectra Search", badge: "Prototype", docTitle: "Reference Spectra Search (prototype)", langBtn: "日本語",
@@ -214,6 +225,10 @@
         <span class="note">Prototype. Information shown is based on the metadata registered with each DOI.</span>`,
       citeXafs: "When using SPring-8 BL14B2 data in publications, cite the DOI of each dataset and Ofuchi, Matsumoto, Honma, <i>Radiat. Phys. Chem.</i> <b>218</b> (2024) 111581. For other facilities, follow their citation rules.",
       citeHaxpes: "When using the data in publications, cite the DOI of each dataset and the HAXPES reference sample database (S. Yasuno et al.).",
+      relTitle: "Related resources", relSim: "XAFS simulation spectra", relHaxpes: "HAXPES spectra", relCryst: "Crystallographic information",
+      relPhase: "Phase diagrams", relProp: "Material and property information", relLogin: " (login required)",
+      relHaxpesBtn: "Show HAXPES data for {el} ({n})",
+      relNote: "Same supplementary resources as the International XAFS DB Portal. External links open each site's top or search page.",
     },
   };
   const LANGS = Object.keys(I18N);
@@ -300,6 +315,27 @@
     });
     $("ptHint").textContent = state.method === "HAXPES" ? t("ptHintHx")
       : state.method === "IXDB" ? t("ptHintIx", { date: ixdbGenerated() }) : t("ptHintMdr");
+    renderRelated();
+  }
+
+  // ---- 関連情報（IXDB トップページの補足情報と同じ外部リソース）----
+  // 外部サイトは URL で検索条件を渡せない（COD は常に 0 件、CPDDB・AtomWork は要ログイン、
+  // Materials Project はボット確認あり）ため、トップ／検索ページへのリンクにする。
+  // HAXPES はこのページの MDR（HAXPES）タブへ、選択中の元素で切り替えるボタンを出す。
+  function renderRelated() {
+    const a = (href, text) => `<a href="${href}" target="_blank" rel="noopener">${esc(text)}</a>`;
+    const mp = a("https://next-gen.materialsproject.org/", "Materials Project");
+    const hxCount = state.el && state.haxpes ? state.haxpes.filter(r => r.elements.includes(state.el)).length : 0;
+    const hxBtn = hxCount && state.method !== "HAXPES"
+      ? ` — <button type="button" class="linkbtn" id="toHaxpes">${esc(t("relHaxpesBtn", { el: state.el, n: hxCount }))}</button>` : "";
+    $("related").innerHTML = `<h3>${esc(t("relTitle"))}</h3><ul>
+      <li>${esc(t("relSim"))}: ${mp}</li>
+      <li>${esc(t("relHaxpes"))}: ${a("https://doi.org/10.48505/nims.3056", "MDR HAXPES DB")}${hxBtn}</li>
+      <li>${esc(t("relCryst"))}: ${a("https://www.crystallography.net/cod/search.html", "Crystallography Open Database (COD)")}</li>
+      <li>${esc(t("relPhase"))}: ${a("https://cpddb.nims.go.jp/", "Computational Phase Diagram Database (CPDDB)")}<span class="muted">${esc(t("relLogin"))}</span></li>
+      <li>${esc(t("relProp"))}: ${mp}, ${a("https://crystdb.nims.go.jp/", "AtomWork")}<span class="muted">${esc(t("relLogin"))}</span></li>
+    </ul><p class="hint" style="margin:2px 0 0">${esc(t("relNote"))}</p>`;
+    if (hxBtn) $("toHaxpes").onclick = async () => { const el = state.el; await setMethod("HAXPES"); selectElement(el); };
   }
 
   // ---- DataCite レコード → 表示用（キーワードの並び順に依存しない）----
@@ -379,6 +415,7 @@
   }
 
   async function selectElement(sym) {
+    if (!state.haxpes) loadHaxpes().then(renderRelated).catch(() => {});
     state.el = sym; paintTable();
     setStatus("searching", { el: sym });
     $("rows").innerHTML = "";

@@ -21,6 +21,7 @@ It holds no spectral data itself: it searches public metadata (DOI records and a
 
 - Records of the same material are grouped across databases (IXDB tab).
 - Your selection is kept across tabs; download the MDR records as zip, save the list as CSV (DOI, URL), or copy citations.
+- A **Related resources** box (same as the IXDB portal) links to Materials Project, MDR HAXPES DB, COD, CPDDB and AtomWork; if the selected element has HAXPES data, a button opens it in the MDR (HAXPES) tab.
 
 ## Usage
 
