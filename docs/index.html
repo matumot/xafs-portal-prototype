@@ -167,7 +167,8 @@
       count: "{src}・{el}：{n} 件{mat}{scope}", mats: "・{n} 物質",
       scopeAllDb: "（全データベース）", scopeAllFac: "（全施設）", scopeOne: "（{x}）",
       thSample: "試料", thFormula: "組成", thEdge: "吸収端", thCrystal: "結晶", thFacBl: "施設 / BL", thData: "データ",
-      thMaterial: "物質（代表名）", thOrig: "元の名称", thDb: "データベース",
+      thMaterial: "物質", thOrig: "元の名称", thDb: "データベース", thRel: "関連", codN: "COD（{n}）",
+      relIxdbRow: "物質ごとの結晶構造（COD）・XAS シミュレーション（Materials Project）・AtomWork へのリンクは、一覧の「関連」列にあります（MatVoc Explorer より）。",
       none: "該当する試料がありません", select: "選択", openIn: "{db} で開く",
       doiTitle: "doi:{doi}（MDR のページが開くまで 1 分近くかかる場合があります）",
       cartEmpty: "一覧のチェックボックスで試料を選ぶと、ここにまとめて表示されます。",
@@ -179,7 +180,7 @@
       ptHintMdr: "色付き：選択中の施設で登録のある元素（2026-10-22 時点）。その他の元素も検索できます",
       footIx: `検索：International XAFS DB Portal（<a href="https://ixdb.jxafs.org/" target="_blank" rel="noopener">ixdb.jxafs.org</a>、NIMS）の知識グラフ（SPARQL）から作成した索引（{date} 時点）。索引の元データ：M. Ishii et al.「International XAFS DB RDF and Ontology」（<a href="https://doi.org/10.48505/nims.5513" target="_blank" rel="noopener">doi:10.48505/nims.5513</a>、<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>）。
         データの利用条件・引用は各データベースの規定に従ってください。IXDB を引用する場合：M. Ishii et al., <i>J. Synchrotron Rad.</i> <b>32</b> (2025), <a href="https://doi.org/10.1107/S1600577525002206" target="_blank" rel="noopener">doi:10.1107/S1600577525002206</a>。<br>
-        <span class="note">※試作版。同じ物質は MatVoc の物質 ID でまとめ、代表名は MDR の名称（なければ最頻の名称）を表示しています。</span>`,
+        <span class="note">※試作版。同じ物質は MatVoc の物質 ID でまとめ、物質名・組成式・関連リンクは <a href="https://matvoc.nims.go.jp/explore/" target="_blank" rel="noopener">MatVoc Explorer</a>（NIMS）から取得しています（索引作成時点）。</span>`,
       footMdr: `データ出典：NIMS Materials Data Repository「{db}」（<a href="https://doi.org/{dbDoi}" target="_blank" rel="noopener">doi:{dbDoi}</a>）。
         ライセンス：各データの表示に従う（JASRI 提供分は <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>）。
         検索：<a href="https://support.datacite.org/docs/api" target="_blank" rel="noopener">DataCite REST API</a>。{extra}<br>
@@ -206,7 +207,8 @@
       count: "{src} · {el}: {n} records{mat}{scope}", mats: " · {n} materials",
       scopeAllDb: " (all databases)", scopeAllFac: " (all facilities)", scopeOne: " ({x})",
       thSample: "Sample", thFormula: "Formula", thEdge: "Edge", thCrystal: "Crystal", thFacBl: "Facility / BL", thData: "Data",
-      thMaterial: "Material (representative name)", thOrig: "Original name", thDb: "Database",
+      thMaterial: "Material", thOrig: "Original name", thDb: "Database", thRel: "Related", codN: "COD ({n})",
+      relIxdbRow: "Per-material links to crystal structures (COD), XAS simulations (Materials Project) and AtomWork are in the Related column of the list (from MatVoc Explorer).",
       none: "No matching samples", select: "Select", openIn: "Open in {db}",
       doiTitle: "doi:{doi} (the MDR page may take up to a minute to open)",
       cartEmpty: "Samples you tick in the list are collected here.",
@@ -218,7 +220,7 @@
       ptHintMdr: "Highlighted: elements registered at the selected facility (as of 2026-10-22). Other elements can also be searched",
       footIx: `Search: index built from the knowledge graph (SPARQL) of the International XAFS DB Portal (<a href="https://ixdb.jxafs.org/" target="_blank" rel="noopener">ixdb.jxafs.org</a>, NIMS), as of {date}. Index source data: M. Ishii et al., "International XAFS DB RDF and Ontology" (<a href="https://doi.org/10.48505/nims.5513" target="_blank" rel="noopener">doi:10.48505/nims.5513</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>).
         Follow each database's terms of use and citation rules. To cite IXDB: M. Ishii et al., <i>J. Synchrotron Rad.</i> <b>32</b> (2025), <a href="https://doi.org/10.1107/S1600577525002206" target="_blank" rel="noopener">doi:10.1107/S1600577525002206</a>.<br>
-        <span class="note">Prototype. Records of the same material are grouped by MatVoc material ID; the representative name is the MDR name (or the most frequent name).</span>`,
+        <span class="note">Prototype. Records of the same material are grouped by MatVoc material ID; material names, formulas and related links are taken from <a href="https://matvoc.nims.go.jp/explore/" target="_blank" rel="noopener">MatVoc Explorer</a> (NIMS) when the index was built.</span>`,
       footMdr: `Data source: NIMS Materials Data Repository "{db}" (<a href="https://doi.org/{dbDoi}" target="_blank" rel="noopener">doi:{dbDoi}</a>).
         License: as stated for each dataset (data provided by JASRI: <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>).
         Search: <a href="https://support.datacite.org/docs/api" target="_blank" rel="noopener">DataCite REST API</a>. {extra}<br>
@@ -334,7 +336,7 @@
       <li>${esc(t("relCryst"))}: ${a("https://www.crystallography.net/cod/search.html", "Crystallography Open Database (COD)")}</li>
       <li>${esc(t("relPhase"))}: ${a("https://cpddb.nims.go.jp/", "Computational Phase Diagram Database (CPDDB)")}<span class="muted">${esc(t("relLogin"))}</span></li>
       <li>${esc(t("relProp"))}: ${mp}, ${a("https://crystdb.nims.go.jp/", "AtomWork")}<span class="muted">${esc(t("relLogin"))}</span></li>
-    </ul><p class="hint" style="margin:2px 0 0">${esc(t("relNote"))}</p>`;
+    </ul><p class="hint" style="margin:2px 0 0">${esc(t("relNote"))}${state.method === "IXDB" ? " " + esc(t("relIxdbRow")) : ""}</p>`;
     if (hxBtn) $("toHaxpes").onclick = async () => { const el = state.el; await setMethod("HAXPES"); selectElement(el); };
   }
 
@@ -397,6 +399,11 @@
             facilityKey: x.db === "MDR" ? `MDR|${x.fac || ""}` : x.db, page: x.url,
             zip: uuid ? `https://mdr.nims.go.jp/datasets/${uuid}.zip` : "", formula: "", crystal: "", mtype: "",
             keywords: `${x.group} ${x.name} ${x.title} ${x.edge}`, mat: x.mat };
+        }).map(r => {
+          // MatVoc Explorer の名称（日本語・英語）・組成式・関連リンク（tools/build_ixdb_index.py で取り込み）
+          const m = window.IXDB_INDEX?.materials?.[r.mat] || {};
+          return { ...r, mv: m, nameEn: m.en || r.name, nameJa: m.ja || "", formula: m.f || "",
+            keywords: `${r.keywords} ${m.en || ""} ${m.ja || ""} ${m.f || ""}` };
         });
         ok(state.ixdb);
       };
@@ -449,6 +456,17 @@
   const scopeLabel = () => state.facility.startsWith("MDR|")
     ? `MDR XAFS DB: ${facShort(state.facility.slice(4))}` : dbName(state.facility);
 
+  // 表示名：IXDB は MatVoc の名称を表示言語に合わせて使う
+  const nm = r => r.method === "IXDB" ? (lang === "ja" && r.nameJa) || r.nameEn || r.name : r.name;
+  function relatedHtml(r) {
+    if (!r.mat) return "";
+    const m = r.mv || {}, a = (href, text, title = "") => `<a href="${esc(href)}" target="_blank" rel="noopener"${title ? ` title="${esc(title)}"` : ""}>${esc(text)}</a>`;
+    const mvUrl = `https://matvoc.nims.go.jp/explore/${lang === "ja" ? "ja" : "en"}/results/${r.mat}`;
+    return [a(mvUrl, "MatVoc"), m.mp ? a(m.mp, "MP-XAS", "Materials Project XAS") : "",
+      m.cod?.length ? a(mvUrl, t("codN", { n: m.cod.length }), "Crystallography Open Database") : "",
+      m.aw ? a(m.aw, "AtomWork") : ""].filter(Boolean).join(" ");
+  }
+
   function filtered() {
     const q = $("q").value.trim().toLowerCase();
     const hit = r => `${r.name} ${r.formula} ${r.keywords}`.toLowerCase().includes(q);
@@ -459,14 +477,14 @@
       (!$("crystal").value || r.crystal === $("crystal").value) &&
       (!$("mtype").value || r.mtype === $("mtype").value) &&
       (!q || hit(r) || (mats && mats.has(r.mat))))
-      .sort((x, y) => x.name.localeCompare(y.name) || x.edge.localeCompare(y.edge) || x.crystal.localeCompare(y.crystal) || facLabel(x).localeCompare(facLabel(y)));
+      .sort((x, y) => nm(x).localeCompare(nm(y)) || x.edge.localeCompare(y.edge) || x.crystal.localeCompare(y.crystal) || facLabel(x).localeCompare(facLabel(y)));
   }
 
   function render() {
     const hx = state.method === "HAXPES", ix = state.method === "IXDB";
     const th = keys => "<tr><th></th>" + keys.map(k => `<th>${esc(t(k))}</th>`).join("") + "</tr>";
     $("thead").innerHTML = hx ? th(["thSample", "thFacBl", "thData"])
-      : ix ? th(["thMaterial", "thOrig", "thEdge", "thDb", "thData"])
+      : ix ? th(["thMaterial", "thFormula", "thOrig", "thEdge", "thDb", "thData", "thRel"])
       : th(["thSample", "thFormula", "thEdge", "thCrystal", "thFacBl", "thData"]);
     if (!state.el) { $("rows").innerHTML = ""; if (!state.status.err && state.status.key !== "loading") setStatus("pickElement"); return; }
     const list = filtered();
@@ -474,15 +492,20 @@
       : state.facility ? t("scopeOne", { x: facLong(state.facility) }) : t("scopeAllFac");
     const mat = ix ? t("mats", { n: new Set(list.map(r => r.mat || r.name)).size }) : "";
     setStatus("count", { src: ix ? "IXDB" : state.method, el: state.el, n: list.length, mat, scope });
-    $("rows").innerHTML = list.map(r => `
+    // 関連リンクは同じ物質の 1 行目だけに出す
+    const firstOfMat = new Set();
+    $("rows").innerHTML = list.map(r => {
+      const rel = ix && r.mat && !firstOfMat.has(r.mat) ? (firstOfMat.add(r.mat), relatedHtml(r)) : "";
+      return `
       <tr class="${state.cart.has(r.doi) ? "on" : ""}">
         <td><input type="checkbox" data-doi="${esc(r.doi)}" ${state.cart.has(r.doi) ? "checked" : ""} aria-label="${esc(t("select"))}"></td>
-        <td>${esc(r.name)}</td>
-        ${ix ? `<td>${esc(r.orig || "")}</td><td class="nw">${esc(r.edge)}</td>`
+        <td>${esc(nm(r))}</td>
+        ${ix ? `<td>${esc(r.formula)}</td><td>${esc(r.orig || "")}</td><td class="nw">${esc(r.edge)}</td>`
           : hx ? "" : `<td>${esc(r.formula)}</td><td class="nw">${esc(r.edge)}</td><td class="nw">${esc(r.crystal)}</td>`}
         <td>${esc(facLabel(r))}${r.beamline ? ` / ${esc(r.beamline)}` : ""}</td>
         <td class="links">${linksHtml(r)}</td>
-      </tr>`).join("") || `<tr><td colspan="7" class="empty">${esc(t("none"))}</td></tr>`;
+        ${ix ? `<td class="links">${rel}</td>` : ""}
+      </tr>`; }).join("") || `<tr><td colspan="8" class="empty">${esc(t("none"))}</td></tr>`;
     document.querySelectorAll("#rows input[type=checkbox]").forEach(cb => cb.onchange = () => {
       const r = state.recs.find(x => x.doi === cb.dataset.doi);
       cb.checked ? state.cart.set(r.doi, r) : state.cart.delete(r.doi);
@@ -504,7 +527,7 @@
     const items = [...state.cart.values()];
     ["dlzip", "dlcsv", "cite", "clearSel"].forEach(id => $(id).disabled = !items.length);
     $("cart").innerHTML = items.length
-      ? `<ul>${items.map(r => `<li>${esc(r.name)} (${esc(describe(r))}) — ${linksHtml(r)}</li>`).join("")}</ul>`
+      ? `<ul>${items.map(r => `<li>${esc(nm(r))} (${esc(describe(r))}) — ${linksHtml(r)}</li>`).join("")}</ul>`
       : `<p class="hint">${esc(t("cartEmpty"))}</p>`;
   }
 
