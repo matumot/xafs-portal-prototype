@@ -193,7 +193,7 @@
       citeHaxpes: "論文等で利用する際は、各データの DOI と HAXPES 標準試料データベース（S. Yasuno et al.）を引用してください。",
       relTitle: "関連情報", relSim: "XAFS シミュレーションスペクトル", relHaxpes: "HAXPES スペクトル", relCryst: "結晶情報",
       relPhase: "状態図", relProp: "物性情報", relLogin: "（要ログイン）",
-      relHaxpesBtn: "{el} の HAXPES データを見る（{n} 件）",
+      relHaxpesBtn: "{el} の HAXPES データを見る（{n} 件）", relCodEl: "{el} を含む構造を検索",
       relNote: "International XAFS DB Portal と同じ補足情報です。外部サイトはトップページまたは検索ページを開きます。",
     },
     en: {
@@ -233,7 +233,7 @@
       citeHaxpes: "When using the data in publications, cite the DOI of each dataset and the HAXPES reference sample database (S. Yasuno et al.).",
       relTitle: "Related resources", relSim: "XAFS simulation spectra", relHaxpes: "HAXPES spectra", relCryst: "Crystallographic information",
       relPhase: "Phase diagrams", relProp: "Material and property information", relLogin: " (login required)",
-      relHaxpesBtn: "Show HAXPES data for {el} ({n})",
+      relHaxpesBtn: "Show HAXPES data for {el} ({n})", relCodEl: "Structures containing {el}",
       relNote: "Same supplementary resources as the International XAFS DB Portal. External links open each site's top or search page.",
     },
   };
@@ -325,8 +325,8 @@
   }
 
   // ---- 関連情報（IXDB トップページの補足情報と同じ外部リソース）----
-  // 外部サイトは URL で検索条件を渡せない（COD は常に 0 件、CPDDB・AtomWork は要ログイン、
-  // Materials Project はボット確認あり）ため、トップ／検索ページへのリンクにする。
+  // 外部サイトは基本的にトップ／検索ページへのリンク（CPDDB・AtomWork は要ログイン、
+  // Materials Project はボット確認あり）。COD は result.php?el1= で元素検索を渡せるので、選択中の元素で検索するリンクも出す。
   // HAXPES はこのページの MDR（HAXPES）タブへ、選択中の元素で切り替えるボタンを出す。
   function renderRelated() {
     const a = (href, text) => `<a href="${href}" target="_blank" rel="noopener">${esc(text)}</a>`;
@@ -334,10 +334,11 @@
     const hxCount = state.el && state.haxpes ? state.haxpes.filter(r => r.elements.includes(state.el)).length : 0;
     const hxBtn = hxCount && state.method !== "HAXPES"
       ? ` — <button type="button" class="linkbtn" id="toHaxpes">${esc(t("relHaxpesBtn", { el: state.el, n: hxCount }))}</button>` : "";
+    const codEl = state.el ? ` — ${a(`https://www.crystallography.net/cod/result.php?el1=${state.el}`, t("relCodEl", { el: state.el }))}` : "";
     $("related").innerHTML = `<h3>${esc(t("relTitle"))}</h3><ul>
       <li>${esc(t("relSim"))}: ${mp}</li>
       <li>${esc(t("relHaxpes"))}: ${a("https://doi.org/10.48505/nims.3056", "MDR HAXPES DB")}${hxBtn}</li>
-      <li>${esc(t("relCryst"))}: ${a("https://www.crystallography.net/cod/search.html", "Crystallography Open Database (COD)")}</li>
+      <li>${esc(t("relCryst"))}: ${a("https://www.crystallography.net/cod/search.html", "Crystallography Open Database (COD)")}${codEl}</li>
       <li>${esc(t("relPhase"))}: ${a("https://cpddb.nims.go.jp/", "Computational Phase Diagram Database (CPDDB)")}<span class="muted">${esc(t("relLogin"))}</span></li>
       <li>${esc(t("relProp"))}: ${mp}, ${a("https://crystdb.nims.go.jp/", "AtomWork")}<span class="muted">${esc(t("relLogin"))}</span></li>
     </ul><p class="hint" style="margin:2px 0 0">${esc(t("relNote"))}${state.method === "IXDB" ? " " + esc(t("relIxdbRow")) : ""}</p>`;
