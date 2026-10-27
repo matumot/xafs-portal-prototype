@@ -93,6 +93,14 @@
   #plotSlotWide .plotbox { margin: 10px 0 0; }
   #plotSlotWide .plotbox svg text { font-size: 15px; }
   #plotSlotNarrow:has(.plotbox:not([hidden])) ~ .list { max-height: 36vh; }
+  /* 拡大表示：画面いっぱいに重ねて出す（Esc か「縮小」で戻る） */
+  .plotbox.big { position: fixed; inset: 3vh 3vw auto; max-height: 94vh; z-index: 20; margin: 0; overflow: auto; background: var(--panel);
+    box-shadow: 0 0 0 100vmax rgba(0, 0, 0, .45); }
+  .plotbox.big svg { max-height: calc(94vh - 170px); }
+  #plotSlotWide .plotbox.big svg text, .plotbox.big svg text { font-size: 9px; }
+  /* スマホの縦画面では幅が変わらず拡大の意味がないので出さない */
+  @media (max-width: 600px) { .plotbox.big svg text { font-size: 18px; } #plotBig { display: none; } }
+  .plotbox .pbtns { display: flex; gap: 12px; white-space: nowrap; }
   tr.plotting td { background: var(--accent-soft); }
   tr.plotting td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
   .plotbox[hidden] { display: none; }
@@ -221,7 +229,7 @@
       relTitle: "関連情報", relSim: "XAFS シミュレーションスペクトル", relHaxpes: "HAXPES スペクトル", relCryst: "結晶情報",
       relPhase: "状態図", relProp: "物性情報", relLogin: "（要ログイン）",
       relHaxpesBtn: "{el} の HAXPES データを見る（{n} 件）", relCodEl: "{el} を含む構造を検索",
-      plot: "プロット", plotTip: "このデータセットのスペクトルをこのページに表示", close: "閉じる", plotLoading: "スペクトルを読み込み中…",
+      plot: "プロット", plotTip: "このデータセットのスペクトルをこのページに表示", close: "閉じる", enlarge: "拡大", shrink: "縮小", plotLoading: "スペクトルを読み込み中…",
       plotFail: "スペクトルを読み込めませんでした（{msg}）", plotNone: "このデータセットには表示できるスペクトルがありません。",
       viewRaw: "生データ", viewNorm: "バックグラウンド除去・規格化", rangeAll: "全範囲", rangeXanes: "XANES 付近", series: "ファイル",
       energy: "エネルギー (eV)", normAxis: "規格化 μ(E)",
@@ -273,7 +281,7 @@
       relTitle: "Related resources", relSim: "XAFS simulation spectra", relHaxpes: "HAXPES spectra", relCryst: "Crystallographic information",
       relPhase: "Phase diagrams", relProp: "Material and property information", relLogin: " (login required)",
       relHaxpesBtn: "Show HAXPES data for {el} ({n})", relCodEl: "Structures containing {el}",
-      plot: "Plot", plotTip: "Plot the spectrum of this dataset on this page", close: "Close", plotLoading: "Loading spectrum…",
+      plot: "Plot", plotTip: "Plot the spectrum of this dataset on this page", close: "Close", enlarge: "Enlarge", shrink: "Shrink", plotLoading: "Loading spectrum…",
       plotFail: "Could not load the spectrum ({msg})", plotNone: "This dataset has no spectrum that can be plotted.",
       viewRaw: "Raw", viewNorm: "Background-subtracted, normalized", rangeAll: "Full range", rangeXanes: "XANES region", series: "File",
       energy: "Energy (eV)", normAxis: "Normalized μ(E)",
@@ -627,7 +635,7 @@
     const kind = /fluor/i.test(d.measurement_mode || "") ? "fl" : "mu";
     return { src: "IHEP", live: true, s: x.length > 5 && x.length === y.length ? [{ n: d.file_name || id, t: kind, x, y }] : [] };
   }
-  const plot = { rec: null, key: "", data: null, idx: 0, view: "raw", range: "all", err: "" };
+  const plot = { rec: null, key: "", data: null, idx: 0, view: "raw", range: "all", err: "", big: false };
   async function openPlot(key) {
     const r = [...state.recs, ...state.cart.values()].find(x => plotKey(x) === key);
     Object.assign(plot, { rec: r, key, data: null, idx: 0, err: "" });
@@ -644,7 +652,8 @@
   const placePlot = () => $(wideMq.matches ? "plotSlotWide" : "plotSlotNarrow").appendChild($("plot"));
   wideMq.addEventListener("change", placePlot);
   placePlot();
-  function closePlot() { plot.rec = null; plot.key = ""; $("plot").hidden = true; markPlotRow(); }
+  function closePlot() { plot.rec = null; plot.key = ""; plot.big = false; $("plot").hidden = true; $("plot").classList.remove("big"); markPlotRow(); }
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && plot.big) { plot.big = false; renderPlot(); } });
   // 表示中のスペクトルの行に色を付ける
   function markPlotRow() {
     document.querySelectorAll("#rows tr").forEach(tr => tr.classList.toggle("plotting",
@@ -705,13 +714,16 @@
     box.hidden = false;
     const r = plot.rec;
     const head = `<div class="phead"><h3>${esc(nm(r))} — ${esc(r.edge)}${r.crystal ? `, ${esc(r.crystal)}` : ""}, ${esc(facLabel(r))}</h3>
-      <button type="button" class="linkbtn" id="plotClose">${esc(t("close"))}</button></div>`;
+      <span class="pbtns"><button type="button" class="linkbtn" id="plotBig">${esc(t(plot.big ? "shrink" : "enlarge"))}</button>
+      <button type="button" class="linkbtn" id="plotClose">${esc(t("close"))}</button></span></div>`;
     const body = plot.err === "missing" ? `<p class="status">${esc(t("plotMissing"))}</p>`
       : plot.err ? `<p class="status err">${esc(t("plotFail", { msg: plot.err }))}</p>`
       : !plot.data ? `<p class="status">${esc(t("plotLoading"))}</p>`
       : !plot.data.s.length ? `<p class="status">${esc(t("plotNone"))}</p>` : plotBody();
     box.innerHTML = head + body;
+    box.classList.toggle("big", plot.big);
     $("plotClose").onclick = closePlot;
+    $("plotBig").onclick = () => { plot.big = !plot.big; renderPlot(); };
     box.querySelectorAll("[data-view]").forEach(b => b.onclick = () => { plot.view = b.dataset.view; renderPlot(); });
     box.querySelectorAll("[data-range]").forEach(b => b.onclick = () => { plot.range = b.dataset.range; renderPlot(); });
     if ($("plotSeries")) $("plotSeries").onchange = e => { plot.idx = +e.target.value; renderPlot(); };
