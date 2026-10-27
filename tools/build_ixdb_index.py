@@ -181,6 +181,9 @@ def main():
             "el": m.group(1) if m else "",
             "mat": g(r, "mat").rsplit("/", 1)[-1],
         })
+        # CLS は URL がトップページだけなので、プロット用にスペクトルの ID（CLS 側の "<元素>_id<ID>" の <ID>）を残す
+        if db == "CLS":
+            recs[-1]["wid"] = w.split("#")[-1]
 
     # 同じ物質 (MatVoc ID) の代表名：MDR の名前を優先し、なければ最頻の名前
     by_mat = collections.defaultdict(list)

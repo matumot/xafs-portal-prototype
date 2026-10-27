@@ -88,6 +88,24 @@
   .lang { font: inherit; font-size: 12.5px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 14px;
     background: var(--panel); color: var(--ink); cursor: pointer; white-space: nowrap; }
   .lang:hover { border-color: var(--accent); }
+  .plotbox { margin-top: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 6px; }
+  .plotbox[hidden] { display: none; }
+  .plotbox .phead { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  .plotbox h3 { font-size: 13px; margin: 0; }
+  .plotbox .ctrl { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 6px 0; font-size: 12.5px; }
+  .plotbox .ctrl select { font: inherit; font-size: 12.5px; padding: 3px 6px; border: 1px solid var(--line); border-radius: 5px;
+    background: var(--panel); color: var(--ink); max-width: 100%; }
+  .plotbox .seg button { font-size: 12px; padding: 3px 10px; }
+  .plotbox .seg button:disabled { opacity: .5; cursor: default; }
+  .plotbox svg { width: 100%; height: auto; display: block; }
+  .plotbox svg text { fill: var(--muted); font-size: 11px; font-family: inherit; }
+  @media (max-width: 600px) { .plotbox svg text { font-size: 18px; } }
+  .plotbox .axis { stroke: var(--muted); stroke-width: 1; }
+  .plotbox .grid { stroke: var(--line); stroke-width: 1; }
+  .plotbox .curve { fill: none; stroke: var(--accent); stroke-width: 1.6; }
+  .plotbox .fit { fill: none; stroke: var(--warn); stroke-width: 1.2; stroke-dasharray: 5 4; }
+  .plotbox .e0 { stroke: var(--err); stroke-width: 1; stroke-dasharray: 2 3; }
+  td.links .linkbtn { white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -133,6 +151,7 @@
         <tbody id="rows"></tbody>
       </table>
     </div>
+    <div class="plotbox" id="plot" hidden></div>
 
     <h2 style="margin-top:14px" data-i18n="step3"></h2>
     <div class="cart" id="cart"></div>
@@ -194,6 +213,18 @@
       relTitle: "関連情報", relSim: "XAFS シミュレーションスペクトル", relHaxpes: "HAXPES スペクトル", relCryst: "結晶情報",
       relPhase: "状態図", relProp: "物性情報", relLogin: "（要ログイン）",
       relHaxpesBtn: "{el} の HAXPES データを見る（{n} 件）", relCodEl: "{el} を含む構造を検索",
+      plot: "プロット", plotTip: "このデータセットのスペクトルをこのページに表示", close: "閉じる", plotLoading: "スペクトルを読み込み中…",
+      plotFail: "スペクトルを読み込めませんでした（{msg}）", plotNone: "このデータセットには表示できるスペクトルがありません。",
+      viewRaw: "生データ", viewNorm: "バックグラウンド除去・規格化", rangeAll: "全範囲", rangeXanes: "XANES 付近", series: "ファイル",
+      energy: "エネルギー (eV)", normAxis: "規格化 μ(E)",
+      kmu: "μt", kfl: "蛍光 If/I0", key: "I/I0", knorm: "施設で規格化済み", kref: "リファレンス μt",
+      srcmu: "μt = ln(I0/I)", srcfl: "If/I0", srcey: "検出強度 / I0", srcnorm: "施設が前縁除去・規格化したデータ", srcref: "リファレンス箔の μt",
+      normInfo: "E0 = {e0} eV（一次微分の最大）、edge step = {step}",
+      normNote: "前縁を直線、吸収端より上を{post}で近似して差し引き、edge step が 1 になるよう規格化した簡易処理です。解析には Athena などで改めて処理してください。",
+      postLin: "直線", postQuad: "2 次式", stepBad: "edge step が求められないため規格化できません。",
+      plotSrc: "MDR XAFS DB の各データセット（{src}）から取り出したデータです（表示用に間引きあり）。",
+      plotSrcDb: "{db}から取り出したデータです（表示用に間引きあり）。", plotSrcLive: "{db}の API から直接取得したデータです。",
+      plotLic: "ライセンス：{lic}", plotMissing: "このデータのスペクトルはまだ取り込んでいません（試作版のため一部のみ）",
       relNote: "International XAFS DB Portal と同じ補足情報です。外部サイトはトップページまたは検索ページを開きます。",
     },
     en: {
@@ -234,6 +265,18 @@
       relTitle: "Related resources", relSim: "XAFS simulation spectra", relHaxpes: "HAXPES spectra", relCryst: "Crystallographic information",
       relPhase: "Phase diagrams", relProp: "Material and property information", relLogin: " (login required)",
       relHaxpesBtn: "Show HAXPES data for {el} ({n})", relCodEl: "Structures containing {el}",
+      plot: "Plot", plotTip: "Plot the spectrum of this dataset on this page", close: "Close", plotLoading: "Loading spectrum…",
+      plotFail: "Could not load the spectrum ({msg})", plotNone: "This dataset has no spectrum that can be plotted.",
+      viewRaw: "Raw", viewNorm: "Background-subtracted, normalized", rangeAll: "Full range", rangeXanes: "XANES region", series: "File",
+      energy: "Energy (eV)", normAxis: "Normalized μ(E)",
+      kmu: "μt", kfl: "Fluorescence If/I0", key: "I/I0", knorm: "Normalized by facility", kref: "Reference μt",
+      srcmu: "μt = ln(I0/I)", srcfl: "If/I0", srcey: "Detected intensity / I0", srcnorm: "Background-subtracted and normalized by the facility", srcref: "μt of the reference foil",
+      normInfo: "E0 = {e0} eV (maximum of the first derivative), edge step = {step}",
+      normNote: "Simple processing: a line below the edge and a {post} above it are subtracted and the edge step is scaled to 1. Use Athena or similar for analysis.",
+      postLin: "line", postQuad: "quadratic", stepBad: "Cannot normalize because the edge step could not be determined.",
+      plotSrc: "Data taken from each dataset of MDR XAFS DB ({src}), thinned out for display.",
+      plotSrcDb: "Data taken from {db}, thinned out for display.", plotSrcLive: "Data fetched directly from the {db} API.",
+      plotLic: " License: {lic}", plotMissing: "the spectrum of this record has not been imported yet (prototype: partial)",
       relNote: "Same supplementary resources as the International XAFS DB Portal. External links open each site's top or search page.",
     },
   };
@@ -399,7 +442,8 @@
       sc.onload = () => {
         state.ixdb = (window.IXDB_INDEX?.records || []).map(x => {
           const uuid = x.db === "MDR" ? x.url.split("/").pop() : "";
-          return { method: "IXDB", doi: x.doi || x.url, realDoi: x.doi, name: x.group, orig: x.name !== x.group ? x.name : "",
+          // doi は選択リストのキー。CLS は URL がトップページだけなので ID を付けて区別する
+          return { method: "IXDB", doi: x.doi || (x.wid ? `${x.url}#${x.wid}` : x.url), realDoi: x.doi, wid: x.wid, name: x.group, orig: x.name !== x.group ? x.name : "",
             title: x.title, edge: x.edge, el: x.el, db: x.db, fac: x.fac || "", beamline: x.bl || "",
             facilityKey: x.db === "MDR" ? `MDR|${x.fac || ""}` : x.db, page: x.url,
             zip: uuid ? `https://mdr.nims.go.jp/datasets/${uuid}.zip` : "", formula: "", crystal: "", mtype: "",
@@ -527,13 +571,167 @@
 
   const describe = r => r.method === "HAXPES" ? `HAXPES, ${facLabel(r)} ${r.beamline}` : `${r.edge}, ${r.crystal ? r.crystal + ", " : ""}${facLabel(r)}`;
   function linksHtml(r) {
-    if (r.method === "IXDB" && r.db !== "MDR") return `<a href="${esc(r.page)}" target="_blank" rel="noopener">${esc(t("openIn", { db: r.db }))}</a>`;
+    const key = plotKey(r);
+    const plot = key ? `<button type="button" class="linkbtn" data-plot="${esc(key)}" title="${esc(t("plotTip"))}">${esc(t("plot"))}</button>` : "";
+    if (r.method === "IXDB" && r.db !== "MDR") return `<a href="${esc(r.page)}" target="_blank" rel="noopener">${esc(t("openIn", { db: r.db }))}</a>${plot}`;
     const doi = r.realDoi ?? r.doi;
     // DOI と MDR ページは同じ所に着くので DOI に一本化（DOI が無いときだけ MDR ページへ直接リンク）
     const page = doi
       ? `<a href="https://doi.org/${esc(doi)}" target="_blank" rel="noopener" title="${esc(t("doiTitle", { doi }))}">DOI</a>`
       : `<a href="${esc(r.page)}" target="_blank" rel="noopener">MDR</a>`;
-    return `${page}<a href="${esc(r.zip)}">zip</a>`;
+    return `${page}<a href="${esc(r.zip)}">zip</a>${plot}`;
+  }
+
+  // ---- スペクトル表示 ----
+  // MDR・LISA・XASLIB・CLS はブラウザから直接取得できない (CORS) ため、tools/build_spectra.py と
+  // tools/build_overseas_spectra.py で docs/spectra/ に取り出したものを使う。IHEP は API から直接取得する。
+  // プロットの対象を "<DB>:<ID>" で表す（ID の規則は build_overseas_spectra.py の ident と同じ）
+  function plotKey(r) {
+    const m = (re, s) => (re.exec(s || "") || [])[1] || "";
+    if (r.method === "HAXPES") return "";
+    if (r.method === "XAFS" || r.db === "MDR") { const id = m(/^https:\/\/mdr\.nims\.go\.jp\/datasets\/([0-9a-f-]{36})$/, r.page); return id && `MDR:${id}`; }
+    const id = r.db === "IHEP" ? m(/\/element\/(\d+)/, r.page) : r.db === "LISA" ? m(/\/data\/([^/]+)\.xdi$/, r.page)
+      : r.db === "XASLIB" ? m(/\/spectrum\/(\d+)/, r.page) : r.db === "CLS" ? r.wid || "" : "";
+    return id && `${r.db}:${id}`;
+  }
+  async function loadSpectrum(key) {
+    const [db, id] = [key.slice(0, key.indexOf(":")), key.slice(key.indexOf(":") + 1)];
+    const getJson = async url => { const res = await fetch(url); if (!res.ok) throw new Error(res.status === 404 && !url.startsWith("http") ? t("plotMissing") : `HTTP ${res.status}`); return res.json(); };
+    if (db === "MDR") return getJson(`spectra/${id}.json`);
+    if (db !== "IHEP") return getJson(`spectra/${db.toLowerCase()}/${encodeURIComponent(id)}.json`);
+    // IHEP の API は CORS を許可しているので直接取得（値は文字列の配列）
+    const d = (await getJson(`https://xasdb.ihep.ac.cn/api/spectra/${id}`)).data || {};
+    const x = (d.spectra_x || []).map(Number), y = (d.spectra_y || []).map(Number);
+    const kind = /fluor/i.test(d.measurement_mode || "") ? "fl" : "mu";
+    return { src: "IHEP", live: true, s: x.length > 5 && x.length === y.length ? [{ n: d.file_name || id, t: kind, x, y }] : [] };
+  }
+  const plot = { rec: null, data: null, idx: 0, view: "raw", range: "all", err: "" };
+  async function openPlot(key) {
+    const r = [...state.recs, ...state.cart.values()].find(x => plotKey(x) === key);
+    Object.assign(plot, { rec: r, data: null, idx: 0, err: "" });
+    renderPlot();
+    $("plot").scrollIntoView({ block: "nearest", behavior: "smooth" });
+    try {
+      const data = await loadSpectrum(key);
+      if (plot.rec === r) plot.data = data;
+    } catch (e) { if (plot.rec === r) plot.err = e.message; }
+    if (plot.rec === r) renderPlot();
+  }
+  function closePlot() { plot.rec = null; $("plot").hidden = true; }
+  // 一覧と選択中リストの両方にボタンがあるので、まとめて受ける
+  document.addEventListener("click", e => { const b = e.target.closest("[data-plot]"); if (b) openPlot(b.dataset.plot); });
+
+  // 簡易の前縁・後縁処理（Athena の考え方に近いもの）：E0 は平滑化した一次微分の最大
+  function normalize(x, y) {
+    const n = x.length;
+    if (n < 8) return null;
+    const ys = y.map((v, i) => (y[Math.max(0, i - 1)] + v + y[Math.min(n - 1, i + 1)]) / 3);
+    let i0 = 1, best = -Infinity;
+    for (let i = 1; i < n - 1; i++) {
+      const d = (ys[i + 1] - ys[i - 1]) / (x[i + 1] - x[i - 1]);
+      if (d > best) { best = d; i0 = i; }
+    }
+    const e0 = x[i0];
+    const dPre = Math.min(30, 0.35 * (e0 - x[0])), dPost = Math.min(50, 0.3 * (x[n - 1] - e0));
+    const sel = f => { const idx = x.map((v, i) => i).filter(i => f(x[i])); return [idx.map(i => x[i]), idx.map(i => y[i])]; };
+    let [px, py] = sel(v => v < e0 - dPre);
+    if (px.length < 3) [px, py] = [x.slice(0, 3), y.slice(0, 3)];
+    let [qx, qy] = sel(v => v > e0 + dPost);
+    if (qx.length < 3) [qx, qy] = [x.slice(-3), y.slice(-3)];
+    const order = qx[qx.length - 1] - qx[0] > 200 ? 2 : 1;
+    const pre = polyfit(px, py, 1), post = polyfit(qx, qy, order);
+    const step = polyval(post, e0) - polyval(pre, e0);
+    return { e0, pre, post, order, step, y: step > 0 ? y.map((v, i) => (v - polyval(pre, x[i])) / step) : null };
+  }
+  function polyfit(x, y, order) {
+    // 最小二乗（正規方程式）。数値の安定のため x を平均からの差にする
+    const m = x.reduce((a, b) => a + b, 0) / x.length, k = order + 1;
+    const A = Array.from({ length: k }, () => new Array(k + 1).fill(0));
+    x.forEach((xv, i) => {
+      const p = Array.from({ length: k }, (_, j) => (xv - m) ** j);
+      for (let r = 0; r < k; r++) { for (let c = 0; c < k; c++) A[r][c] += p[r] * p[c]; A[r][k] += p[r] * y[i]; }
+    });
+    for (let c = 0; c < k; c++)
+      for (let r = c + 1; r < k; r++) { const f = A[r][c] / A[c][c]; for (let j = c; j <= k; j++) A[r][j] -= f * A[c][j]; }
+    const b = new Array(k).fill(0);
+    for (let r = k - 1; r >= 0; r--) { let s = A[r][k]; for (let j = r + 1; j < k; j++) s -= A[r][j] * b[j]; b[r] = s / A[r][r]; }
+    return { m, b };
+  }
+  const polyval = (p, xv) => p.b.reduce((s, c, j) => s + c * (xv - p.m) ** j, 0);
+
+  function niceTicks(lo, hi, count) {
+    const raw = (hi - lo || 1) / count, mag = 10 ** Math.floor(Math.log10(raw));
+    const step = [1, 2, 2.5, 5, 10].map(f => f * mag).find(s => s >= raw);
+    const out = [];
+    for (let v = Math.ceil(lo / step) * step; v <= hi + step * 1e-9; v += step) out.push(+v.toPrecision(12));
+    return out;
+  }
+
+  function renderPlot() {
+    const box = $("plot");
+    if (!plot.rec) { box.hidden = true; return; }
+    box.hidden = false;
+    const r = plot.rec;
+    const head = `<div class="phead"><h3>${esc(nm(r))} — ${esc(r.edge)}${r.crystal ? `, ${esc(r.crystal)}` : ""}, ${esc(facLabel(r))}</h3>
+      <button type="button" class="linkbtn" id="plotClose">${esc(t("close"))}</button></div>`;
+    const body = plot.err ? `<p class="status err">${esc(t("plotFail", { msg: plot.err }))}</p>`
+      : !plot.data ? `<p class="status">${esc(t("plotLoading"))}</p>`
+      : !plot.data.s.length ? `<p class="status">${esc(t("plotNone"))}</p>` : plotBody();
+    box.innerHTML = head + body;
+    $("plotClose").onclick = closePlot;
+    box.querySelectorAll("[data-view]").forEach(b => b.onclick = () => { plot.view = b.dataset.view; renderPlot(); });
+    box.querySelectorAll("[data-range]").forEach(b => b.onclick = () => { plot.range = b.dataset.range; renderPlot(); });
+    if ($("plotSeries")) $("plotSeries").onchange = e => { plot.idx = +e.target.value; renderPlot(); };
+  }
+
+  function plotBody() {
+    const S = plot.data.s, s = S[Math.min(plot.idx, S.length - 1)];
+    // 施設で規格化済みのデータ（立命館の .tey など）はそのまま表示する
+    const facNorm = s.t === "norm";
+    const nz = facNorm ? null : normalize(s.x, s.y);
+    const isNorm = !facNorm && plot.view === "norm" && nz && nz.y;
+    const ys = isNorm ? nz.y : s.y;
+    let x0 = s.x[0], x1 = s.x[s.x.length - 1];
+    if (plot.range === "xanes" && nz) { x0 = Math.max(x0, nz.e0 - 30); x1 = Math.min(x1, nz.e0 + 70); }
+    const idx = s.x.map((v, i) => i).filter(i => s.x[i] >= x0 && s.x[i] <= x1);
+    let lo = Math.min(...idx.map(i => ys[i])), hi = Math.max(...idx.map(i => ys[i]));
+    const pad = (hi - lo || 1) * 0.06; lo -= pad; hi += pad;
+    const W = 640, H = 310, L = 66, R = 12, T = 10, B = 50;
+    const X = v => L + (v - x0) / (x1 - x0 || 1) * (W - L - R), Y = v => T + (hi - v) / (hi - lo || 1) * (H - T - B);
+    const fmtY = v => Math.abs(v) >= 1000 ? v.toExponential(1) : +v.toPrecision(4);
+    const line = pts => pts.map(([a, b], k) => `${k ? "L" : "M"}${X(a).toFixed(1)},${Y(b).toFixed(1)}`).join("");
+    const fit = (p, a, b) => line(Array.from({ length: 41 }, (_, k) => { const v = a + (b - a) * k / 40; return [v, polyval(p, v)]; }));
+    const showFit = !isNorm && nz && nz.y;
+    const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(nm(plot.rec))}">
+      <defs><clipPath id="pc"><rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}"/></clipPath></defs>
+      ${niceTicks(x0, x1, 6).map(v => `<line class="grid" x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${H - B}"/><text x="${X(v)}" y="${H - B + 4}" dy="1em" text-anchor="middle">${v}</text>`).join("")}
+      ${niceTicks(lo, hi, 5).map(v => `<line class="grid" x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${L - 5}" y="${Y(v)}" dy=".35em" text-anchor="end">${fmtY(v)}</text>`).join("")}
+      <line class="axis" x1="${L}" x2="${L}" y1="${T}" y2="${H - B}"/><line class="axis" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/>
+      <g clip-path="url(#pc)">
+        ${showFit ? `<path class="fit" d="${fit(nz.pre, x0, nz.e0 + 20)}"/><path class="fit" d="${fit(nz.post, nz.e0 - 20, x1)}"/>` : ""}
+        ${nz && nz.e0 >= x0 && nz.e0 <= x1 ? `<line class="e0" x1="${X(nz.e0)}" x2="${X(nz.e0)}" y1="${T}" y2="${H - B}"/>` : ""}
+        <path class="curve" d="${line(idx.map(i => [s.x[i], ys[i]]))}"/>
+      </g>
+      <text x="${(L + W - R) / 2}" y="${H - 4}" text-anchor="middle">${esc(t("energy"))}</text>
+      <text transform="translate(4 ${(T + H - B) / 2}) rotate(-90)" dy="1em" text-anchor="middle">${esc(isNorm ? t("normAxis") : t("k" + s.t))}</text>
+    </svg>`;
+    const seg = (key, cur, opts) => `<span class="seg">${opts.map(([v, label, dis]) =>
+      `<button type="button" data-${key}="${v}" class="${cur === v ? "on" : ""}"${dis ? " disabled" : ""}>${esc(t(label))}</button>`).join("")}</span>`;
+    const ctrl = `<div class="ctrl">
+      ${S.length > 1 ? `<label>${esc(t("series"))} <select id="plotSeries">${S.map((x, i) => `<option value="${i}"${i === plot.idx ? " selected" : ""}>${esc(x.n)} (${esc(t("k" + x.t))})</option>`).join("")}</select></label>`
+        : `<span class="hint" style="margin:0">${esc(s.n)}</span>`}
+      ${facNorm ? "" : seg("view", isNorm ? "norm" : "raw", [["raw", "viewRaw"], ["norm", "viewNorm", !(nz && nz.y)]])}
+      ${seg("range", nz ? plot.range : "all", [["all", "rangeAll"], ["xanes", "rangeXanes", !nz]])}
+    </div>`;
+    const info = [t("src" + s.t)];
+    if (nz) info.push(nz.y ? t("normInfo", { e0: nz.e0.toFixed(1), step: +nz.step.toPrecision(3) }) : t("stepBad"));
+    const note = isNorm ? `<p class="hint">${esc(t("normNote", { post: t(nz.order === 2 ? "postQuad" : "postLin") }))}</p>` : "";
+    const d = plot.data;
+    const src = d.live ? t("plotSrcLive", { db: dbName(d.src) }) : IXDB_DBS[d.src] ? t("plotSrcDb", { db: dbName(d.src) })
+      : t("plotSrc", { src: facShort(d.src) || d.src });
+    // LISA は Zenodo の登録 (doi:10.5281/zenodo.10778068) が CC BY 4.0、XASLIB は about ページでパブリックドメインと明記
+    const lic = d.lic || { LISA: "CC BY 4.0", XASLIB: "Public Domain" }[d.src];
+    return ctrl + svg + `<p class="hint">${esc(info.join(lang === "ja" ? "／" : " / "))}</p>${note}<p class="hint">${esc(src)}${lic ? esc(t("plotLic", { lic })) : ""}</p>`;
   }
   function renderCart() {
     const items = [...state.cart.values()];
@@ -580,7 +778,7 @@
     document.querySelectorAll("[data-i18n-aria]").forEach(e => e.setAttribute("aria-label", t(e.dataset.i18nAria)));
     $("lang").textContent = t("langBtn");
     if (state.method) {
-      fillFacility(); renderFooter(); paintTable(); render(); renderCart();
+      fillFacility(); renderFooter(); paintTable(); render(); renderCart(); renderPlot();
       $("status").textContent = t(state.status.key, state.status.vars);
     }
   }
@@ -593,7 +791,7 @@
   // ---- 切り替え ----
   async function setMethod(m) {
     if (state.method === m) return;
-    state.method = m; state.facility = ""; state.el = null; state.recs = [];
+    state.method = m; state.facility = ""; state.el = null; state.recs = []; closePlot();
     document.querySelectorAll("#method button").forEach(x => x.classList.toggle("on", x.dataset.v === m));
     document.querySelectorAll(".xafs-only").forEach(x => x.classList.toggle("hide",
       state.method === "HAXPES" || (state.method === "IXDB" && !x.querySelector("#edge"))));

@@ -1,7 +1,7 @@
 # XAFS / HAXPES Reference Spectra Search Portal (prototype)
 
 A static web page to find XAFS / HAXPES reference spectra by element and download only the ones you need.
-It holds no spectral data itself: it searches public metadata (DOI records and a knowledge graph) and links directly to each source database.
+It searches public metadata (DOI records and a knowledge graph) and links directly to each source database; for MDR XAFS DB it also plots each dataset's spectrum on the page.
 
 **Live page:**
 - English: https://matumot.github.io/xafs-portal-prototype/?lang=en
@@ -21,6 +21,7 @@ It holds no spectral data itself: it searches public metadata (DOI records and a
 
 - Records of the same material are grouped across databases (IXDB tab), shown with Japanese/English names and formulas from [MatVoc Explorer](https://matvoc.nims.go.jp/explore/) (NIMS).
 - IXDB tab: a **Related** column gives per-material links (as on the MatVoc pages linked from the IXDB portal): MatVoc, Materials Project XAS simulation, COD crystal structures, and AtomWork.
+- MDR XAFS records (MDR tab, and MDR rows in the IXDB tab) and IXDB records from IHEP, LISA, XASLIB and CLS have a **Plot** button that shows the dataset's spectrum on the page: raw (μt = ln(I0/I), If/I0 or I/I0 as provided by each facility) or background-subtracted and normalized (simple pre-edge line / post-edge fit, edge step = 1), full range or XANES region. Datasets with several files (repeated scans, reference foil, TEY/PFY) can be switched.
 - Your selection is kept across tabs; download the MDR records as zip, save the list as CSV (DOI, URL), or copy citations.
 - A **Related resources** box (same as the IXDB portal) links to Materials Project, MDR HAXPES DB, COD, CPDDB and AtomWork; if the selected element has HAXPES data, a button opens it in the MDR (HAXPES) tab.
 
@@ -38,19 +39,48 @@ Browser (docs/index.html: static page, no server needed)
  └ IXDB tab  → docs/ixdb_index.js (index built from the IXDB knowledge graph), searched in the page
                  └ built by tools/build_ixdb_index.py (IXDB SPARQL + DataCite + MatVoc Explorer)
 Spectral data → fetched directly from each database (MDR zip, database pages)
+Plots       → docs/spectra/<MDR ID>.json, built by tools/build_spectra.py from each MDR XAFS DB zip
+              docs/spectra/{lisa,xaslib,cls}/<ID>.json, built by tools/build_overseas_spectra.py
+              IHEP: fetched live from its API (CORS allowed)
 ```
 
-The NIMS MDR API, the IXDB SPARQL endpoint and MatVoc Explorer cannot be called from a browser (no CORS), so MDR is searched through DataCite and IXDB through a prebuilt index.
+The NIMS MDR API, the IXDB SPARQL endpoint and MatVoc Explorer cannot be called from a browser (no CORS), so MDR is searched through DataCite and IXDB through a prebuilt index. For the same reason the spectra for plotting are extracted in advance.
+
+`tools/build_spectra.py` follows the file formats in the [MDR XAFS DB Readme](https://mdr.nims.go.jp/datasets/73c9765a-2934-4fad-8166-f85c6486991e):
+
+| Facility | File used | Plotted as |
+|---|---|---|
+| SPring-8, Hokkaido Univ. | `*.txt` (Athena format, processed by the facility; `_ref` = reference) | μt |
+| KEK-PF | `*.dat` (PF9809 raw data) | μt = ln(I0/I1) (fluorescence: ΣIf/I0) |
+| Aichi SR | `*.dat` (PF9809, I0/I1/I2) | sample ln(I0/I1), reference ln(I1/I2) |
+| Ritsumeikan Univ. | `*.tey`, `*.pfy`, … (normalized by the facility) and `*.dat` | as provided, and the raw ratio from `*.dat` using the formula in `metadata.yml` |
+| Kyushu SR | `*.tey`, … (I/I0 processed by the facility) | I/I0 |
+
+Spectra with more than 1,000 points (Quick XAFS) are averaged down to about 1,000 points.
+
+Overseas databases in the IXDB tab:
+
+| Database | Source | Plotted as |
+|---|---|---|
+| IHEP | `https://xasdb.ihep.ac.cn/api/spectra/<id>`, fetched by the page | μ as provided |
+| LISA | the XDI file linked from IXDB | `mutrans` / `mufluor`, reference `murefer` |
+| XASLIB | the raw XDI file linked from each spectrum page | `mutrans`, or ln(i0/itrans), ifluor/i0; reference ln(itrans/irefer) |
+| CLS | the CLS XASDB API, using the spectrum ID kept in the IXDB index (`wid`) | μ and reference μ as provided |
+
+Not plotted: FAME (SSHADE) requires a login to export data. ESRF ID21 data are on the ESRF website, whose [terms](https://www.esrf.fr/home/about/disclaimer-and-privacy-policy.html) prohibit reproduction without prior written authorisation (and the site does not allow direct access from the page); about half of its links are PDF/JPG.
 
 ## Deploy and update
 
 - **GitHub Pages:** source = `main` branch, `/docs` folder.
 - **Run locally:** `python -m http.server 8000 --directory docs`, then open http://localhost:8000
 - **Update the IXDB index:** `python tools/build_ixdb_index.py --out docs/ixdb_index.js` (Python 3.9+, no extra packages). The first run fetches about 1,200 MatVoc pages one at a time to respect its rate limit (~1 hour) and caches them in `cache/matvoc.json`; later runs reuse the cache. Use `--no-matvoc` to skip.
+- **Update the spectra for plotting:** `python tools/build_spectra.py --out docs/spectra` (needs PyYAML). It downloads the zip of each of the ~2,265 MDR XAFS DB datasets (several hundred MB in total; a few hours, as MDR often answers slowly or with 504) and skips datasets already in `docs/spectra`, so it can be re-run to fill in failures or new datasets.
+- **Update the overseas spectra:** `python tools/build_overseas_spectra.py --index docs/ixdb_index.js --out docs/spectra` (after updating the IXDB index; ~1,100 spectra from LISA, XASLIB and CLS; skips existing files).
 
 ## Limitations
 
 - MDR responds slowly: opening a DOI or starting a zip download can take 30 s to 1 min.
+- Plots are only available for spectra imported so far (prototype): about 1,030 of the 2,265 MDR XAFS DB datasets (mostly SPring-8) and 598 of the 693 CLS spectra (the others return 404 from CLS); LISA and XASLIB are complete. Other records show "not imported yet". Re-run the build scripts to fill in the rest.
 - Element highlighting in the MDR tabs reflects registrations as of 2026-10-22; other elements can still be searched.
 - MatVoc names and links reflect the time the index was built; materials without a MatVoc entry (or without formula/links there) show the record title only.
 - Prototype: information shown is based on the metadata registered in each database.
@@ -59,7 +89,12 @@ The NIMS MDR API, the IXDB SPARQL endpoint and MatVoc Explorer cannot be called 
 
 - **Code** (`docs/index.html`, `tools/`): [MIT License](LICENSE)
 - **IXDB index** (`docs/ixdb_index.js`): derived from M. Ishii et al., "International XAFS DB RDF and Ontology" (NIMS MDR, [doi:10.48505/nims.5513](https://doi.org/10.48505/nims.5513), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)). Facility information for MDR records is taken from DataCite metadata (CC0). Material names, formulas and related links are taken from [MatVoc](https://matvoc.nims.go.jp/explore/) (NIMS Materials Data Platform); follow NIMS's terms of use.
-- **Spectral data** are not included in this repository. Follow the terms of use and citation rules of each database:
+- **Spectra for plotting** (`docs/spectra/`): extracted (and thinned out) from the datasets of MDR XAFS DB ([doi:10.48505/nims.1447](https://doi.org/10.48505/nims.1447)). Each file keeps the license of its dataset (CC BY 4.0 or CC BY-NC-SA 4.0, as shown on the dataset page); not covered by the MIT License.
+- **Overseas spectra for plotting** (`docs/spectra/lisa/`, `xaslib/`, `cls/`): extracted (and thinned out) from LISA XAS Database, XASLIB and CLS XAS Database; they keep each database's terms. Not covered by the MIT License.
+  - LISA XAS Database: CC BY 4.0 (A. Puri, [doi:10.5281/zenodo.10778068](https://doi.org/10.5281/zenodo.10778068))
+  - XASLIB: public domain ("can be used for any purpose, without restrictions", [about page](https://xaslib.xrayabsorption.org/about))
+  - CLS XAS Database: CC BY 4.0 (stated in each spectrum; kept in each file as `lic`) Other spectral data are not included in this repository.
+- Follow the terms of use and citation rules of each database:
   - MDR XAFS DB: [doi:10.48505/nims.1447](https://doi.org/10.48505/nims.1447) (data provided by JASRI: CC BY 4.0; for SPring-8 BL14B2 data also cite Ofuchi, Matsumoto, Honma, *Radiat. Phys. Chem.* **218** (2024) 111581)
   - MDR HAXPES DB: [doi:10.48505/nims.3056](https://doi.org/10.48505/nims.3056)
   - International XAFS DB Portal: M. Ishii et al., *J. Synchrotron Rad.* **32** (2025), [doi:10.1107/S1600577525002206](https://doi.org/10.1107/S1600577525002206)
