@@ -224,7 +224,7 @@
       postLin: "直線", postQuad: "2 次式", stepBad: "edge step が求められないため規格化できません。",
       plotSrc: "MDR XAFS DB の各データセット（{src}）から取り出したデータです（表示用に間引きあり）。",
       plotSrcDb: "{db}から取り出したデータです（表示用に間引きあり）。", plotSrcLive: "{db}の API から直接取得したデータです。",
-      plotLic: "ライセンス：{lic}", plotMissing: "このデータのスペクトルはまだ取り込んでいません（試作版のため一部のみ）",
+      plotLic: "ライセンス：{lic}", plotMissing: "このデータのスペクトルはまだ取り込んでいません（試作版のため、取り込み済みは一部のみです）。",
       relNote: "International XAFS DB Portal と同じ補足情報です。外部サイトはトップページまたは検索ページを開きます。",
     },
     en: {
@@ -276,7 +276,7 @@
       postLin: "line", postQuad: "quadratic", stepBad: "Cannot normalize because the edge step could not be determined.",
       plotSrc: "Data taken from each dataset of MDR XAFS DB ({src}), thinned out for display.",
       plotSrcDb: "Data taken from {db}, thinned out for display.", plotSrcLive: "Data fetched directly from the {db} API.",
-      plotLic: " License: {lic}", plotMissing: "the spectrum of this record has not been imported yet (prototype: partial)",
+      plotLic: " License: {lic}", plotMissing: "The spectrum of this record has not been imported yet (prototype: only part of the data is imported so far).",
       relNote: "Same supplementary resources as the International XAFS DB Portal. External links open each site's top or search page.",
     },
   };
@@ -596,7 +596,7 @@
   }
   async function loadSpectrum(key) {
     const [db, id] = [key.slice(0, key.indexOf(":")), key.slice(key.indexOf(":") + 1)];
-    const getJson = async url => { const res = await fetch(url); if (!res.ok) throw new Error(res.status === 404 && !url.startsWith("http") ? t("plotMissing") : `HTTP ${res.status}`); return res.json(); };
+    const getJson = async url => { const res = await fetch(url); if (!res.ok) throw new Error(res.status === 404 && !url.startsWith("http") ? "missing" : `HTTP ${res.status}`); return res.json(); };
     if (db === "MDR") return getJson(`spectra/${id}.json`);
     if (db !== "IHEP") return getJson(`spectra/${db.toLowerCase()}/${encodeURIComponent(id)}.json`);
     // IHEP の API は CORS を許可しているので直接取得（値は文字列の配列）
@@ -674,7 +674,8 @@
     const r = plot.rec;
     const head = `<div class="phead"><h3>${esc(nm(r))} — ${esc(r.edge)}${r.crystal ? `, ${esc(r.crystal)}` : ""}, ${esc(facLabel(r))}</h3>
       <button type="button" class="linkbtn" id="plotClose">${esc(t("close"))}</button></div>`;
-    const body = plot.err ? `<p class="status err">${esc(t("plotFail", { msg: plot.err }))}</p>`
+    const body = plot.err === "missing" ? `<p class="status">${esc(t("plotMissing"))}</p>`
+      : plot.err ? `<p class="status err">${esc(t("plotFail", { msg: plot.err }))}</p>`
       : !plot.data ? `<p class="status">${esc(t("plotLoading"))}</p>`
       : !plot.data.s.length ? `<p class="status">${esc(t("plotNone"))}</p>` : plotBody();
     box.innerHTML = head + body;
