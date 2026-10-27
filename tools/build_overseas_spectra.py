@@ -26,7 +26,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from build_spectra import compact, log_ratio
+from build_spectra import compact, log_ratio, write_manifest
 
 UA = {"User-Agent": "jasri-xafs-prototype/0.1"}
 
@@ -175,6 +175,7 @@ def main():
                 fails += 1
                 print(f"[{i}/{len(recs)}] FAILED {rec['db']} {ident(rec)}: {e}", flush=True)
     print(f"done, {fails} failed (re-run to retry)")
+    write_manifest(args.out)
 
 
 if __name__ == "__main__":

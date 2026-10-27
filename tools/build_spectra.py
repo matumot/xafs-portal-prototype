@@ -253,6 +253,27 @@ def build_one(rec, out_dir):
     return rec, f"{len(series)} series"
 
 
+def write_manifest(root):
+    """取り込み済み（スペクトルが 1 本以上ある）ものの ID 一覧を root/available.json に書く。
+    ページはこれを見て、未取り込みのものを「プロット（準備中）」と表示する。
+    build_spectra.py と build_overseas_spectra.py の最後に毎回作り直す。"""
+    root = Path(root)
+    out = {}
+    for db, d in [("MDR", root)] + [(x.name.upper(), x) for x in sorted(root.iterdir()) if x.is_dir()]:
+        ids = []
+        for f in sorted(d.glob("*.json")):
+            if f.name == "available.json":
+                continue
+            try:
+                if json.loads(f.read_text(encoding="utf-8")).get("s"):
+                    ids.append(f.stem)
+            except ValueError:
+                pass
+        out[db] = ids
+    (root / "available.json").write_text(json.dumps(out, separators=(",", ":")), encoding="utf-8")
+    print("available:", {k: len(v) for k, v in out.items()})
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="../docs/spectra")
@@ -277,6 +298,7 @@ def main():
                 fails.append(str(e))
                 print(f"[{i}/{len(recs)}] FAILED: {e}", flush=True)
     print(f"done, {len(fails)} failed (re-run to retry)")
+    write_manifest(out_dir)
 
 
 if __name__ == "__main__":

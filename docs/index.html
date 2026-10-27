@@ -88,7 +88,13 @@
   .lang { font: inherit; font-size: 12.5px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 14px;
     background: var(--panel); color: var(--ink); cursor: pointer; white-space: nowrap; }
   .lang:hover { border-color: var(--accent); }
-  .plotbox { margin-top: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 6px; }
+  /* プロットは、広い画面では左列の周期表の下、狭い画面では一覧の上に出す（どちらも一覧と同時に見えるように） */
+  .plotbox { margin: 0 0 8px; padding: 10px; border: 1px solid var(--line); border-radius: 6px; }
+  #plotSlotWide .plotbox { margin: 10px 0 0; }
+  #plotSlotWide .plotbox svg text { font-size: 15px; }
+  #plotSlotNarrow:has(.plotbox:not([hidden])) ~ .list { max-height: 36vh; }
+  tr.plotting td { background: var(--accent-soft); }
+  tr.plotting td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
   .plotbox[hidden] { display: none; }
   .plotbox .phead { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
   .plotbox h3 { font-size: 13px; margin: 0; }
@@ -105,7 +111,8 @@
   .plotbox .curve { fill: none; stroke: var(--accent); stroke-width: 1.6; }
   .plotbox .fit { fill: none; stroke: var(--warn); stroke-width: 1.2; stroke-dasharray: 5 4; }
   .plotbox .e0 { stroke: var(--err); stroke-width: 1; stroke-dasharray: 2 3; }
-  td.links .linkbtn { white-space: nowrap; }
+  td.links .linkbtn, td.links .pending { white-space: nowrap; }
+  .pending { color: var(--muted); font-size: 12px; cursor: help; }
 </style>
 </head>
 <body>
@@ -132,6 +139,7 @@
     <h2 data-i18n="step1"></h2>
     <div class="ptable" id="ptable" data-i18n-aria="ptAria"></div>
     <p class="hint" id="ptHint"></p>
+    <div id="plotSlotWide"></div>
     <div class="related" id="related"></div>
   </section>
 
@@ -145,13 +153,13 @@
       <div class="xafs-only"><label for="mtype" data-i18n="mtype"></label><select id="mtype"><option value="" data-i18n="all"></option></select></div>
     </div>
     <div class="status" id="status"></div>
+    <div id="plotSlotNarrow"><div class="plotbox" id="plot" hidden></div></div>
     <div class="list">
       <table>
         <thead id="thead"></thead>
         <tbody id="rows"></tbody>
       </table>
     </div>
-    <div class="plotbox" id="plot" hidden></div>
 
     <h2 style="margin-top:14px" data-i18n="step3"></h2>
     <div class="cart" id="cart"></div>
@@ -224,7 +232,7 @@
       postLin: "直線", postQuad: "2 次式", stepBad: "edge step が求められないため規格化できません。",
       plotSrc: "MDR XAFS DB の各データセット（{src}）から取り出したデータです（表示用に間引きあり）。",
       plotSrcDb: "{db}から取り出したデータです（表示用に間引きあり）。", plotSrcLive: "{db}の API から直接取得したデータです。",
-      plotLic: "ライセンス：{lic}", plotMissing: "このデータのスペクトルはまだ取り込んでいません（試作版のため、取り込み済みは一部のみです）。",
+      plotPending: "プロット（準備中）", plotLic: "ライセンス：{lic}", plotMissing: "このデータのスペクトルはまだ取り込んでいません（試作版のため、取り込み済みは一部のみです）。",
       relNote: "International XAFS DB Portal と同じ補足情報です。外部サイトはトップページまたは検索ページを開きます。",
     },
     en: {
@@ -276,7 +284,7 @@
       postLin: "line", postQuad: "quadratic", stepBad: "Cannot normalize because the edge step could not be determined.",
       plotSrc: "Data taken from each dataset of MDR XAFS DB ({src}), thinned out for display.",
       plotSrcDb: "Data taken from {db}, thinned out for display.", plotSrcLive: "Data fetched directly from the {db} API.",
-      plotLic: " License: {lic}", plotMissing: "The spectrum of this record has not been imported yet (prototype: only part of the data is imported so far).",
+      plotPending: "Plot (in preparation)", plotLic: " License: {lic}", plotMissing: "The spectrum of this record has not been imported yet (prototype: only part of the data is imported so far).",
       relNote: "Same supplementary resources as the International XAFS DB Portal. External links open each site's top or search page.",
     },
   };
@@ -562,6 +570,7 @@
         <td class="links">${linksHtml(r)}</td>
         ${ix ? `<td class="links">${rel}</td>` : ""}
       </tr>`; }).join("") || `<tr><td colspan="8" class="empty">${esc(t("none"))}</td></tr>`;
+    markPlotRow();
     document.querySelectorAll("#rows input[type=checkbox]").forEach(cb => cb.onchange = () => {
       const r = state.recs.find(x => x.doi === cb.dataset.doi);
       cb.checked ? state.cart.set(r.doi, r) : state.cart.delete(r.doi);
@@ -572,7 +581,9 @@
   const describe = r => r.method === "HAXPES" ? `HAXPES, ${facLabel(r)} ${r.beamline}` : `${r.edge}, ${r.crystal ? r.crystal + ", " : ""}${facLabel(r)}`;
   function linksHtml(r) {
     const key = plotKey(r);
-    const plot = key ? `<button type="button" class="linkbtn" data-plot="${esc(key)}" title="${esc(t("plotTip"))}">${esc(t("plot"))}</button>` : "";
+    const plot = !key ? "" : plotReady(key)
+      ? `<button type="button" class="linkbtn" data-plot="${esc(key)}" title="${esc(t("plotTip"))}">${esc(t("plot"))}</button>`
+      : `<span class="pending" title="${esc(t("plotMissing"))}">${esc(t("plotPending"))}</span>`;
     if (r.method === "IXDB" && r.db !== "MDR") return `<a href="${esc(r.page)}" target="_blank" rel="noopener">${esc(t("openIn", { db: r.db }))}</a>${plot}`;
     const doi = r.realDoi ?? r.doi;
     // DOI と MDR ページは同じ所に着くので DOI に一本化（DOI が無いときだけ MDR ページへ直接リンク）
@@ -594,6 +605,17 @@
       : r.db === "XASLIB" ? m(/\/spectrum\/(\d+)/, r.page) : r.db === "CLS" ? r.wid || "" : "";
     return id && `${r.db}:${id}`;
   }
+  // 取り込み済みの ID 一覧（build_spectra.py が作る）。読めないときは全部押せるようにしておく
+  let available = null;
+  fetch("spectra/available.json").then(r => r.ok ? r.json() : null).then(d => {
+    if (!d) return;
+    available = Object.fromEntries(Object.entries(d).map(([k, v]) => [k, new Set(v)]));
+    render(); renderCart();
+  }).catch(() => {});
+  const plotReady = key => {
+    const i = key.indexOf(":"), db = key.slice(0, i);
+    return db === "IHEP" || !available || !!available[db]?.has(key.slice(i + 1));
+  };
   async function loadSpectrum(key) {
     const [db, id] = [key.slice(0, key.indexOf(":")), key.slice(key.indexOf(":") + 1)];
     const getJson = async url => { const res = await fetch(url); if (!res.ok) throw new Error(res.status === 404 && !url.startsWith("http") ? "missing" : `HTTP ${res.status}`); return res.json(); };
@@ -605,11 +627,11 @@
     const kind = /fluor/i.test(d.measurement_mode || "") ? "fl" : "mu";
     return { src: "IHEP", live: true, s: x.length > 5 && x.length === y.length ? [{ n: d.file_name || id, t: kind, x, y }] : [] };
   }
-  const plot = { rec: null, data: null, idx: 0, view: "raw", range: "all", err: "" };
+  const plot = { rec: null, key: "", data: null, idx: 0, view: "raw", range: "all", err: "" };
   async function openPlot(key) {
     const r = [...state.recs, ...state.cart.values()].find(x => plotKey(x) === key);
-    Object.assign(plot, { rec: r, data: null, idx: 0, err: "" });
-    renderPlot();
+    Object.assign(plot, { rec: r, key, data: null, idx: 0, err: "" });
+    renderPlot(); markPlotRow();
     $("plot").scrollIntoView({ block: "nearest", behavior: "smooth" });
     try {
       const data = await loadSpectrum(key);
@@ -617,7 +639,17 @@
     } catch (e) { if (plot.rec === r) plot.err = e.message; }
     if (plot.rec === r) renderPlot();
   }
-  function closePlot() { plot.rec = null; $("plot").hidden = true; }
+  // 画面幅に応じてプロットの置き場所を切り替える（main の 2 列レイアウトと同じ境目）
+  const wideMq = matchMedia("(min-width: 981px)");
+  const placePlot = () => $(wideMq.matches ? "plotSlotWide" : "plotSlotNarrow").appendChild($("plot"));
+  wideMq.addEventListener("change", placePlot);
+  placePlot();
+  function closePlot() { plot.rec = null; plot.key = ""; $("plot").hidden = true; markPlotRow(); }
+  // 表示中のスペクトルの行に色を付ける
+  function markPlotRow() {
+    document.querySelectorAll("#rows tr").forEach(tr => tr.classList.toggle("plotting",
+      !!plot.key && [...tr.querySelectorAll("[data-plot]")].some(b => b.dataset.plot === plot.key)));
+  }
   // 一覧と選択中リストの両方にボタンがあるので、まとめて受ける
   document.addEventListener("click", e => { const b = e.target.closest("[data-plot]"); if (b) openPlot(b.dataset.plot); });
 
