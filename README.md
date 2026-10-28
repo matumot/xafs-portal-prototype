@@ -101,11 +101,11 @@ Not plotted: FAME (SSHADE) requires a login to export data. ESRF ID21 data are o
 
 ## License and data sources
 
-- **Code** (`docs/index.html`, `tools/`): [MIT License](LICENSE)
+- **Code** (`docs/index.html`, `docs/guide.html`, `tools/`): [Apache License 2.0](LICENSE) (see also [NOTICE](NOTICE)). Changed from the MIT License on 2026-10-29 to make the patent terms explicit.
 - **IXDB index** (`docs/ixdb_index.js`): derived from M. Ishii et al., "International XAFS DB RDF and Ontology" (NIMS MDR, [doi:10.48505/nims.5513](https://doi.org/10.48505/nims.5513), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)). Facility information for MDR records is taken from DataCite metadata (CC0). Material names, formulas and related links are taken from [MatVoc](https://matvoc.nims.go.jp/explore/) (NIMS Materials Data Platform); follow NIMS's terms of use.
-- **Spectra for plotting** (`docs/spectra/`): extracted (and thinned out) from the datasets of MDR XAFS DB ([doi:10.48505/nims.1447](https://doi.org/10.48505/nims.1447)). Each file keeps the license of its dataset (CC BY 4.0 or CC BY-NC-SA 4.0, as shown on the dataset page); not covered by the MIT License.
-- **HAXPES spectra for plotting** (`docs/spectra/haxpes/`): from MDR HAXPES DB; CC BY-NC-SA 4.0 (as stated in each dataset's metadata). Not covered by the MIT License.
-- **Overseas spectra for plotting** (`docs/spectra/lisa/`, `xaslib/`, `cls/`): extracted (and thinned out) from LISA XAS Database, XASLIB and CLS XAS Database; they keep each database's terms. Not covered by the MIT License.
+- **Spectra for plotting** (`docs/spectra/`): extracted (and thinned out) from the datasets of MDR XAFS DB ([doi:10.48505/nims.1447](https://doi.org/10.48505/nims.1447)). Each file keeps the license of its dataset (CC BY 4.0 or CC BY-NC-SA 4.0, as shown on the dataset page); not covered by the Apache License 2.0 of the code.
+- **HAXPES spectra for plotting** (`docs/spectra/haxpes/`): from MDR HAXPES DB; CC BY-NC-SA 4.0 (as stated in each dataset's metadata). Not covered by the Apache License 2.0 of the code.
+- **Overseas spectra for plotting** (`docs/spectra/lisa/`, `xaslib/`, `cls/`): extracted (and thinned out) from LISA XAS Database, XASLIB and CLS XAS Database; they keep each database's terms. Not covered by the Apache License 2.0 of the code.
   - LISA XAS Database: CC BY 4.0 (A. Puri, [doi:10.5281/zenodo.10778068](https://doi.org/10.5281/zenodo.10778068))
   - XASLIB: public domain ("can be used for any purpose, without restrictions", [about page](https://xaslib.xrayabsorption.org/about))
   - CLS XAS Database: CC BY 4.0 (stated in each spectrum; kept in each file as `lic`) Other spectral data are not included in this repository.

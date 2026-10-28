@@ -1,0 +1,10 @@
+xafs-portal-prototype
+Copyright 2026 Japan Synchrotron Radiation Research Institute (JASRI)
+
+This product includes software developed at the Japan Synchrotron Radiation
+Research Institute (JASRI).
+
+The Apache License 2.0 applies to the code (docs/index.html, docs/guide.html,
+tools/). Spectral data and indexes derived from external databases
+(docs/spectra/, docs/ixdb_index.js) are not covered by it and remain subject
+to the terms of each source database; see README.md.
