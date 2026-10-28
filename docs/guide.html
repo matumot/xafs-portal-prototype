@@ -91,6 +91,7 @@
       <li>見つけたスペクトルを<b>その場でプロット</b>して形を確かめ、必要なものだけを<b>ダウンロード</b>できます。</li>
       <li>手元の測定データを読み込んで、<b>XANES の形が似ている標準試料</b>を探せます（XANES 類似検索）。</li>
     </ul>
+    <p>スペクトルの規格化・類似度の評価・文献値の表示は、いずれも既に論文や Athena などの既存ソフトで使われている手法をそのまま使っています。新しい解析手法を提案するものではなく、データベースの標準試料を探して比べる作業を手軽にするためのものです。</p>
     <p class="note">試作版です。表示内容は各データベースに登録されたメタデータに基づきます。データの利用条件・引用は各データベースの規定に従ってください。</p>
   </div>
   <div lang="en">
@@ -99,6 +100,7 @@
       <li><b>Plot</b> a spectrum on the page to check its shape, and <b>download</b> only what you need.</li>
       <li>Load your own data and find reference samples with <b>similar XANES</b> (XANES matching).</li>
     </ul>
+    <p>Normalization, similarity metrics and reference values all use methods already established in published work and existing software such as Athena. Nothing here is a new analysis method; the aim is to make finding and comparing database reference samples easier.</p>
     <p class="note">Prototype. Information shown is based on the metadata registered in each database. Follow each database's terms of use and citation rules.</p>
   </div>
 </section>
@@ -149,7 +151,7 @@
       <li><b>生データ／バックグラウンド除去・規格化</b>：生データでは、差し引く前縁・後縁の線（破線）と E0（一次微分の最大、赤の点線）も重ねます。規格化は簡易処理です。解析には Athena などで処理し直してください。</li>
       <li><b>全範囲／XANES 付近</b>：吸収端の前後（E0−30〜+70 eV）を拡大します。</li>
       <li><b>ファイル</b>：繰り返し測定・リファレンス（箔）・TEY／PFY など複数のファイルがあるデータは切り替えられます。HAXPES は「領域」（wide・VB・各内殻）を切り替えます（横軸は結合エネルギーで右ほど小さい）。</li>
-      <li><span class="green">緑の破線</span>：文献値です。XAFS は NIST X-ray Transition Energies（SRD 128）の吸収端エネルギーで、このデータの E0 との差も表示します。HAXPES は NIST XPS Database（SRD 20）の推奨値（ない準位は Elam らの表）の結合エネルギーです。</li>
+      <li><span class="green">緑の破線</span>：文献値です。XAFS は NIST X-ray Transition Energies（SRD 128）の吸収端エネルギー（<b>金属の値</b>。化合物では化学シフトの分だけ高エネルギー側にずれます）で、このデータの E0 との差も表示します。HAXPES は NIST XPS Database（SRD 20）の推奨値（ない準位は Elam らの表）の結合エネルギーです。</li>
       <li><span class="k">拡大</span>：画面いっぱいに大きく表示します。<span class="k">縮小</span> か Esc キーで戻ります（スマホの縦画面では出ません）。</li>
       <li><span class="k">プロット（準備中）</span>：まだ取り込んでいないデータです（試作版のため一部のみ）。</li>
     </ul>
@@ -160,7 +162,7 @@
       <li><b>Raw / Background-subtracted, normalized</b>: the raw view also shows the pre- and post-edge lines (dashed) and E0 (maximum of the first derivative, red dotted). Normalization is simple; use Athena or similar for analysis.</li>
       <li><b>Full range / XANES region</b>: zooms to E0−30 to +70 eV.</li>
       <li><b>File</b>: switch between files of a dataset (repeated scans, reference foil, TEY/PFY). For HAXPES, switch the <b>region</b> (wide, VB, core levels); the axis is binding energy, decreasing to the right.</li>
-      <li><span class="green">Green dashed lines</span>: reference values. XAFS: edge energy from NIST X-ray Transition Energies (SRD 128), with the difference from the data's E0. HAXPES: binding energies from the NIST XPS Database (SRD 20) recommended values (Elam et al. for levels without one).</li>
+      <li><span class="green">Green dashed lines</span>: reference values. XAFS: edge energy from NIST X-ray Transition Energies (SRD 128) — the value for the <b>metal</b>; compounds shift to higher energy by the chemical shift — with the difference from the data's E0. HAXPES: binding energies from the NIST XPS Database (SRD 20) recommended values (Elam et al. for levels without one).</li>
       <li><span class="k">Enlarge</span>: shows the plot as a large overlay; <span class="k">Shrink</span> or Esc to return (not shown on phones in portrait).</li>
       <li><span class="k">Plot (in preparation)</span>: not imported yet (prototype: only part of the data).</li>
     </ul>
