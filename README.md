@@ -9,6 +9,8 @@ It searches public metadata (DOI records and a knowledge graph) and links direct
 
 (The language can also be switched with the button at the top right of the page.)
 
+**User guide** (opened from the "User guide" button at the top of the page): [日本語](https://matumot.github.io/xafs-portal-prototype/guide.html?lang=ja) / [English](https://matumot.github.io/xafs-portal-prototype/guide.html?lang=en)
+
 > 日本語：XAFS・HAXPES の標準試料スペクトルを元素から検索し、必要なものだけをダウンロードできる Web ページ（試作版）です。画面右上で日本語／英語を切り替えられます。
 
 ## Features

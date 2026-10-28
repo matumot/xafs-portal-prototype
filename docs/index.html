@@ -88,6 +88,8 @@
   .lang { font: inherit; font-size: 12.5px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 14px;
     background: var(--panel); color: var(--ink); cursor: pointer; white-space: nowrap; }
   .lang:hover { border-color: var(--accent); }
+  .topbtns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  a.lang { text-decoration: none; color: var(--ink); }
   /* プロットは、広い画面では左列の周期表の下、狭い画面では一覧の上に出す（どちらも一覧と同時に見えるように） */
   .plotbox { margin: 0 0 8px; padding: 10px; border: 1px solid var(--line); border-radius: 6px; }
   #plotSlotWide .plotbox { margin: 10px 0 0; }
@@ -154,7 +156,8 @@
 <header>
   <div class="topline">
     <h1><span data-i18n="title"></span><span class="badge" data-i18n="badge"></span></h1>
-    <button type="button" class="lang" id="lang" aria-label="Language"></button>
+    <span class="topbtns"><a class="lang" id="guide" href="guide.html" target="_blank" rel="noopener" data-i18n="guide"></a>
+    <button type="button" class="lang" id="lang" aria-label="Language"></button></span>
   </div>
   <p data-i18n="lead"></p>
 </header>
@@ -221,7 +224,7 @@
   // ---- 表示文言（日本語／英語）----
   const I18N = {
     ja: {
-      title: "標準試料スペクトル検索", badge: "試作版", docTitle: "標準試料スペクトル検索（試作）", langBtn: "English",
+      guide: "利用者ガイド", title: "標準試料スペクトル検索", badge: "試作版", docTitle: "標準試料スペクトル検索（試作）", langBtn: "English",
       lead: "NIMS MDR に登録された XAFS／HAXPES 標準試料を DOI 登録情報（DataCite）から、または各国の XAFS データベースを International XAFS DB Portal（IXDB）の知識グラフから検索します。データ本体は選んだ試料だけ各データベースから直接取得します。",
       tabMatch: "XANES 類似検索", ptHintMatch: "色付き：比較できる XANES がある元素（取り込み済みのスペクトルから作成）",
       mTitle: "② 測定データと似ている標準試料を探す（XANES）", mEdge: "吸収端", mCrystal: "分光結晶（MDR のみ）", mScope: "比較する対象",
@@ -319,7 +322,7 @@
       relNote: "International XAFS DB Portal と同じ補足情報です。外部サイトはトップページまたは検索ページを開きます。",
     },
     en: {
-      title: "Reference Spectra Search", badge: "Prototype", docTitle: "Reference Spectra Search (prototype)", langBtn: "日本語",
+      guide: "User guide", title: "Reference Spectra Search", badge: "Prototype", docTitle: "Reference Spectra Search (prototype)", langBtn: "日本語",
       lead: "Search XAFS/HAXPES reference samples registered in NIMS MDR via their DOI metadata (DataCite), or XAFS databases worldwide via the knowledge graph of the International XAFS DB Portal (IXDB). Data files are retrieved directly from each database, only for the samples you select.",
       tabMatch: "XANES matching", ptHintMatch: "Highlighted: elements with XANES to compare (built from the imported spectra)",
       mTitle: "2. Find reference samples similar to your data (XANES)", mEdge: "Edge", mCrystal: "Mono crystal (MDR only)", mScope: "Compare with",
@@ -1335,6 +1338,7 @@
     document.querySelectorAll("[data-i18n-ph]").forEach(e => e.placeholder = t(e.dataset.i18nPh));
     document.querySelectorAll("[data-i18n-aria]").forEach(e => e.setAttribute("aria-label", t(e.dataset.i18nAria)));
     $("lang").textContent = t("langBtn");
+    $("guide").href = `guide.html?lang=${lang}`;
     if (state.method) {
       fillFacility(); renderFooter(); paintTable(); render(); renderCart(); renderPlot();
       $("status").textContent = t(state.status.key, state.status.vars);

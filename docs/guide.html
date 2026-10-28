@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>利用者ガイド：標準試料スペクトル検索（試作）</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --ink: #1d2430; --muted: #5d6878; --line: #dde2e8;
+    --accent: #1f5c99; --accent-soft: #e6eef7; --warn: #8a5a00; --ref: #2e7d32;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12161c; --panel: #1a2029; --ink: #e5e9ef; --muted: #9aa5b4; --line: #2c3542;
+      --accent: #7fb4e8; --accent-soft: #223246; --warn: #e0b45a; --ref: #81c784;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); line-height: 1.75;
+    font-family: "Yu Gothic UI", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif; font-size: 14.5px; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 16px 16px 48px; }
+  header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  h1 { font-size: 21px; margin: 4px 0 2px; }
+  .sub { color: var(--muted); font-size: 13px; margin: 0; }
+  .lang { font: inherit; font-size: 12.5px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 14px;
+    background: var(--panel); color: var(--ink); cursor: pointer; white-space: nowrap; }
+  nav.toc { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 16px; margin: 16px 0; }
+  nav.toc ol { margin: 4px 0; padding-left: 22px; }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 18px 12px; margin: 14px 0; }
+  h2 { font-size: 16.5px; color: var(--accent); margin: 12px 0 6px; }
+  h3 { font-size: 14.5px; margin: 14px 0 4px; }
+  p, li { margin: 4px 0; }
+  ul, ol { padding-left: 22px; }
+  .k { display: inline-block; padding: 0 7px; border: 1px solid var(--line); border-radius: 5px; background: var(--accent-soft);
+    font-size: 13px; white-space: nowrap; }
+  .note { color: var(--warn); }
+  .green { color: var(--ref); font-weight: 600; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; margin: 6px 0; }
+  th, td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; vertical-align: top; }
+  th { background: var(--accent-soft); }
+  a { color: var(--accent); }
+  .back { display: inline-block; margin-top: 4px; }
+  /* 本文の日本語・英語は lang 属性で書き分け、表示中の言語だけ出す（html 要素自体は対象外） */
+  .wrap [lang="en"] { display: none; }
+  html[data-lang="en"] .wrap [lang="ja"] { display: none; }
+  html[data-lang="en"] .wrap [lang="en"] { display: revert; }
+  @media (max-width: 600px) { .wrap { padding: 12px 12px 40px; } section { padding: 4px 12px 10px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1><span lang="ja">利用者ガイド</span><span lang="en">User guide</span></h1>
+    <p class="sub"><span lang="ja">標準試料スペクトル検索（試作版）の使い方</span><span lang="en">How to use the Reference Spectra Search (prototype)</span></p>
+    <a class="back" id="back" href="./"><span lang="ja">← 検索ページへ</span><span lang="en">← Back to the search page</span></a>
+  </div>
+  <button type="button" class="lang" id="lang"></button>
+</header>
+
+<nav class="toc">
+  <ol lang="ja">
+    <li><a href="#overview">このページでできること</a></li>
+    <li><a href="#tabs">タブの違い</a></li>
+    <li><a href="#search">試料を探す（周期表・絞り込み）</a></li>
+    <li><a href="#plot">スペクトルを見る（プロット）</a></li>
+    <li><a href="#download">ダウンロード・引用</a></li>
+    <li><a href="#match">XANES 類似検索</a></li>
+    <li><a href="#related">関連情報</a></li>
+    <li><a href="#data">データの出典・更新日・ライセンス</a></li>
+    <li><a href="#faq">よくある質問</a></li>
+  </ol>
+  <ol lang="en">
+    <li><a href="#overview">What you can do</a></li>
+    <li><a href="#tabs">The tabs</a></li>
+    <li><a href="#search">Finding samples (periodic table, filters)</a></li>
+    <li><a href="#plot">Viewing spectra (Plot)</a></li>
+    <li><a href="#download">Download and citation</a></li>
+    <li><a href="#match">XANES matching</a></li>
+    <li><a href="#related">Related resources</a></li>
+    <li><a href="#data">Data sources, dates and licenses</a></li>
+    <li><a href="#faq">FAQ</a></li>
+  </ol>
+</nav>
+
+<section id="overview">
+  <h2><span lang="ja">1. このページでできること</span><span lang="en">1. What you can do</span></h2>
+  <div lang="ja">
+    <ul>
+      <li>XAFS・HAXPES の標準試料スペクトルを、<b>周期表の元素</b>から探せます（国内の NIMS MDR と、International XAFS DB Portal（IXDB）を通じた各国の XAFS データベース）。</li>
+      <li>見つけたスペクトルを<b>その場でプロット</b>して形を確かめ、必要なものだけを<b>ダウンロード</b>できます。</li>
+      <li>手元の測定データを読み込んで、<b>XANES の形が似ている標準試料</b>を探せます（XANES 類似検索）。</li>
+    </ul>
+    <p class="note">試作版です。表示内容は各データベースに登録されたメタデータに基づきます。データの利用条件・引用は各データベースの規定に従ってください。</p>
+  </div>
+  <div lang="en">
+    <ul>
+      <li>Find XAFS and HAXPES reference spectra by <b>element in the periodic table</b>, from NIMS MDR (Japan) and the XAFS databases worldwide linked by the International XAFS DB Portal (IXDB).</li>
+      <li><b>Plot</b> a spectrum on the page to check its shape, and <b>download</b> only what you need.</li>
+      <li>Load your own data and find reference samples with <b>similar XANES</b> (XANES matching).</li>
+    </ul>
+    <p class="note">Prototype. Information shown is based on the metadata registered in each database. Follow each database's terms of use and citation rules.</p>
+  </div>
+</section>
+
+<section id="tabs">
+  <h2><span lang="ja">2. タブの違い</span><span lang="en">2. The tabs</span></h2>
+  <table lang="ja">
+    <tr><th>タブ</th><th>探せるもの</th><th>こんなときに</th></tr>
+    <tr><td><span class="k">IXDB（XAFS 国際横断）</span></td><td>MDR と各国の XAFS DB（CLS、SSHADE/FAME、ESRF ID21、XASLIB、LISA、IHEP）。同じ物質はまとめて表示し、物質ごとの関連リンク（COD・Materials Project・AtomWork）付き</td><td>データベースをまたいで探したいとき</td></tr>
+    <tr><td><span class="k">MDR（XAFS）</span></td><td>MDR XAFS DB（SPring-8・KEK・北大・立命館・あいち SR・九州 SR）。施設・吸収端・分光結晶・分類で絞り込み</td><td>国内施設のデータを詳しく絞り込みたいとき</td></tr>
+    <tr><td><span class="k">MDR（HAXPES）</span></td><td>MDR HAXPES DB（SPring-8 BL46XU）</td><td>HAXPES の標準試料を見たいとき</td></tr>
+    <tr><td><span class="k">XANES 類似検索</span></td><td>手元のデータと XANES が似ている標準試料</td><td>未知試料の化学状態の見当をつけたいとき</td></tr>
+  </table>
+  <table lang="en">
+    <tr><th>Tab</th><th>What it searches</th><th>Use it when</th></tr>
+    <tr><td><span class="k">IXDB (XAFS, international)</span></td><td>MDR and XAFS databases worldwide (CLS, SSHADE/FAME, ESRF ID21, XASLIB, LISA, IHEP). Records of the same material are grouped, with per-material links (COD, Materials Project, AtomWork)</td><td>you want to search across databases</td></tr>
+    <tr><td><span class="k">MDR (XAFS)</span></td><td>MDR XAFS DB (SPring-8, KEK, Hokkaido Univ., Ritsumeikan Univ., Aichi SR, Kyushu SR), filterable by facility, edge, crystal and category</td><td>you want to narrow down Japanese facility data</td></tr>
+    <tr><td><span class="k">MDR (HAXPES)</span></td><td>MDR HAXPES DB (SPring-8 BL46XU)</td><td>you need HAXPES reference samples</td></tr>
+    <tr><td><span class="k">XANES matching</span></td><td>Reference samples whose XANES resembles your data</td><td>you want a first idea of the chemical state of an unknown</td></tr>
+  </table>
+</section>
+
+<section id="search">
+  <h2><span lang="ja">3. 試料を探す</span><span lang="en">3. Finding samples</span></h2>
+  <div lang="ja">
+    <ol>
+      <li>上のタブを選びます。IXDB タブでは「データベース」、MDR タブでは「施設」で対象を絞れます。</li>
+      <li>周期表で元素をクリックします。<b>色付きの元素</b>が登録のある元素です（色のない元素も MDR タブでは検索できます）。</li>
+      <li>一覧が出たら、「試料名・組成式で絞り込み」（例：oxide、NiO）や吸収端・分光結晶・分類で絞り込みます。</li>
+    </ol>
+    <p>IXDB タブでは、同じ物質（MatVoc の物質 ID）の記録をまとめ、物質名を日本語／英語で表示します。「関連」列から、その物質の COD（結晶構造）・Materials Project（XAS シミュレーション）・AtomWork へ移動できます。</p>
+  </div>
+  <div lang="en">
+    <ol>
+      <li>Choose a tab. Narrow the scope with "Database" (IXDB tab) or "Facility" (MDR tabs).</li>
+      <li>Click an element in the periodic table. <b>Highlighted elements</b> have registered data (other elements can still be searched in the MDR tabs).</li>
+      <li>Filter the list by sample name or formula (e.g. oxide, NiO), edge, crystal or category.</li>
+    </ol>
+    <p>The IXDB tab groups records of the same material (MatVoc material ID) and shows Japanese/English names. The "Related" column links to COD (crystal structures), Materials Project (XAS simulations) and AtomWork for that material.</p>
+  </div>
+</section>
+
+<section id="plot">
+  <h2><span lang="ja">4. スペクトルを見る（プロット）</span><span lang="en">4. Viewing spectra (Plot)</span></h2>
+  <div lang="ja">
+    <p>一覧の「データ」列の <span class="k">プロット</span> を押すと、その場でスペクトルを表示します（広い画面では周期表の下、狭い画面では一覧の上）。表示中の行は色が付きます。</p>
+    <ul>
+      <li><b>生データ／バックグラウンド除去・規格化</b>：生データでは、差し引く前縁・後縁の線（破線）と E0（一次微分の最大、赤の点線）も重ねます。規格化は簡易処理です。解析には Athena などで処理し直してください。</li>
+      <li><b>全範囲／XANES 付近</b>：吸収端の前後（E0−30〜+70 eV）を拡大します。</li>
+      <li><b>ファイル</b>：繰り返し測定・リファレンス（箔）・TEY／PFY など複数のファイルがあるデータは切り替えられます。HAXPES は「領域」（wide・VB・各内殻）を切り替えます（横軸は結合エネルギーで右ほど小さい）。</li>
+      <li><span class="green">緑の破線</span>：文献値です。XAFS は NIST X-ray Transition Energies（SRD 128）の吸収端エネルギーで、このデータの E0 との差も表示します。HAXPES は NIST XPS Database（SRD 20）の推奨値（ない準位は Elam らの表）の結合エネルギーです。</li>
+      <li><span class="k">拡大</span>：画面いっぱいに大きく表示します。<span class="k">縮小</span> か Esc キーで戻ります（スマホの縦画面では出ません）。</li>
+      <li><span class="k">プロット（準備中）</span>：まだ取り込んでいないデータです（試作版のため一部のみ）。</li>
+    </ul>
+  </div>
+  <div lang="en">
+    <p>Press <span class="k">Plot</span> in the "Data" column to show the spectrum (under the periodic table on wide screens, above the list on narrow ones). The plotted row is highlighted.</p>
+    <ul>
+      <li><b>Raw / Background-subtracted, normalized</b>: the raw view also shows the pre- and post-edge lines (dashed) and E0 (maximum of the first derivative, red dotted). Normalization is simple; use Athena or similar for analysis.</li>
+      <li><b>Full range / XANES region</b>: zooms to E0−30 to +70 eV.</li>
+      <li><b>File</b>: switch between files of a dataset (repeated scans, reference foil, TEY/PFY). For HAXPES, switch the <b>region</b> (wide, VB, core levels); the axis is binding energy, decreasing to the right.</li>
+      <li><span class="green">Green dashed lines</span>: reference values. XAFS: edge energy from NIST X-ray Transition Energies (SRD 128), with the difference from the data's E0. HAXPES: binding energies from the NIST XPS Database (SRD 20) recommended values (Elam et al. for levels without one).</li>
+      <li><span class="k">Enlarge</span>: shows the plot as a large overlay; <span class="k">Shrink</span> or Esc to return (not shown on phones in portrait).</li>
+      <li><span class="k">Plot (in preparation)</span>: not imported yet (prototype: only part of the data).</li>
+    </ul>
+  </div>
+</section>
+
+<section id="download">
+  <h2><span lang="ja">5. ダウンロード・引用</span><span lang="en">5. Download and citation</span></h2>
+  <div lang="ja">
+    <ul>
+      <li>一覧のチェックボックスで試料を選ぶと、下の「ダウンロード」にまとまります（タブや施設を切り替えても保持）。</li>
+      <li><span class="k">選択した試料を zip でダウンロード（MDR 分）</span>：MDR から直接ダウンロードします。MDR の応答により 1 件 30 秒程度かかることがあります。</li>
+      <li><span class="k">選択リストを CSV 保存</span>：DOI・URL の一覧を保存します。</li>
+      <li><span class="k">引用文をコピー</span>：論文などで使う引用文（英語）をコピーします。</li>
+      <li>海外のデータベースは「〇〇で開く」から各サイトへ移動してダウンロードしてください。</li>
+    </ul>
+  </div>
+  <div lang="en">
+    <ul>
+      <li>Tick samples in the list; they are collected under "Download" (kept when you switch tabs or facilities).</li>
+      <li><span class="k">Download selected as zip (MDR records)</span>: downloads directly from MDR; each may take about 30 s.</li>
+      <li><span class="k">Save selection as CSV</span>: saves DOIs and URLs.</li>
+      <li><span class="k">Copy citations</span>: copies citations (in English) for papers.</li>
+      <li>For overseas databases, use "Open in …" and download from each site.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="match">
+  <h2><span lang="ja">6. XANES 類似検索</span><span lang="en">6. XANES matching</span></h2>
+  <div lang="ja">
+    <ol>
+      <li><b>元素・吸収端</b>：<span class="k">XANES 類似検索</span> タブで周期表から元素を選び、吸収端を選びます。必要なら「比較する対象」（DB・施設）と「分光結晶」で絞ります。</li>
+      <li><b>測定データ</b>：テキストファイルを読み込みます。2 列（E・μ）、Athena、XDI、PF9809 形式の .dat に対応しています。列が多いときは、エネルギーの列と「その列／ln(A/B)／A/B」を選びます。エネルギーは eV（keV なら自動で換算）。</li>
+      <li><b>エネルギー補正</b>：施設やビームラインで校正の基準が違うため、ここが重要です。
+        <ul>
+          <li>同じ条件で測った<b>リファレンス（その元素の金属箔など）</b>があれば読み込みます。半値エネルギー（規格化 μ = 0.5）を DB の基準値に合わせます。PF9809 の .dat に I2 のリファレンスがあれば、それも使えます。</li>
+          <li>リファレンスがなければ、<b>測定した施設</b>を選ぶとその施設の代表的な補正量を使います。</li>
+          <li><b>微調整</b>のスライダーを動かすと、結果がすぐ更新されます。重ね描きを見ながら合わせてください。</li>
+        </ul></li>
+      <li><span class="k">比較する</span> を押すと、似ている順に候補が並びます。行をクリックすると、測定データ（橙）と候補（青）を重ねて表示します（規格化 μ と一次微分を切り替え可）。</li>
+    </ol>
+    <h3>結果の見方</h3>
+    <ul>
+      <li><b>総合</b>：6 つの指標それぞれの順位の平均（小さいほど似ている）。見出しをクリックすると、その指標で並べ替えます。</li>
+      <li><b>Pearson・コサイン・Ruzicka</b>（大きいほど似ている）：XANES 照合アルゴリズム ELSIE（Zheng et al., npj Comput. Mater. 2018）で使われた指標。</li>
+      <li><b>微分 Pearson</b>：一次微分の相関。ピークや肩の位置に敏感です。</li>
+      <li><b>Spearman</b>：強度の大小関係だけを見る順位相関。</li>
+      <li><b>R 因子</b>（小さいほど似ている）：Athena の線形結合フィットと同じ形。</li>
+      <li><b>DB 側の補正</b>：DB のスペクトルを「個別」（同時測定のリファレンスで 1 件ずつ）、「施設」（施設の代表値）、「なし」のどれで補正したか。</li>
+      <li><b>重なり</b>：比較する範囲のうち両方にデータのある割合（60% 未満は比較しません）。範囲は「比較する範囲」で変えられます。</li>
+    </ul>
+    <p class="note">似ている順は参考です。物質の同定を保証するものではありません。比べる DB は取り込み済みのスペクトルだけです。測定データはブラウザの中だけで処理し、どこにも送信しません。</p>
+  </div>
+  <div lang="en">
+    <ol>
+      <li><b>Element and edge</b>: in the <span class="k">XANES matching</span> tab, select an element and an edge. Optionally narrow "Compare with" (database/facility) and the mono crystal.</li>
+      <li><b>Your data</b>: load a text file (2 columns E, μ; Athena; XDI; PF9809 .dat). With many columns, choose the energy column and "column / ln(A/B) / A/B". Energy in eV (keV is converted).</li>
+      <li><b>Energy correction</b> (important, since calibration differs between facilities):
+        <ul>
+          <li>If you have a <b>reference (e.g. a metal foil of the element)</b> measured under the same conditions, load it; its half-step energy (normalized μ = 0.5) is aligned with the database reference point. A reference in I2 of a PF9809 .dat can also be used.</li>
+          <li>Without one, choose the <b>facility of your data</b> to use its typical shift.</li>
+          <li>Move the <b>fine adjustment</b> slider; results update immediately. Watch the overlay while adjusting.</li>
+        </ul></li>
+      <li>Press <span class="k">Compare</span>: candidates are listed, most similar first. Click a row to overlay your data (orange) and the candidate (blue); switch between normalized μ and first derivative.</li>
+    </ol>
+    <h3>Reading the results</h3>
+    <ul>
+      <li><b>Overall</b>: mean rank over six metrics (smaller is more similar). Click a header to sort by that metric.</li>
+      <li><b>Pearson, cosine, Ruzicka</b> (larger is more similar): metrics used in the ELSIE XANES matching algorithm (Zheng et al., npj Comput. Mater. 2018).</li>
+      <li><b>Derivative Pearson</b>: correlation of first derivatives, sensitive to peak and shoulder positions.</li>
+      <li><b>Spearman</b>: rank correlation using only the ordering of intensities.</li>
+      <li><b>R-factor</b> (smaller is more similar): same form as in Athena's linear combination fitting.</li>
+      <li><b>DB alignment</b>: whether the database spectrum was aligned with its own reference ("own ref."), the facility typical value ("facility"), or not ("none").</li>
+      <li><b>Overlap</b>: share of the compared range where both have data (below 60% is not compared). Change the range with "Range compared".</li>
+    </ul>
+    <p class="note">The ranking is a guide and does not identify the material. Only imported spectra are compared. Your files are processed only in your browser and are not sent anywhere.</p>
+  </div>
+</section>
+
+<section id="related">
+  <h2><span lang="ja">7. 関連情報</span><span lang="en">7. Related resources</span></h2>
+  <div lang="ja"><p>周期表の下の「関連情報」から、XAFS シミュレーション（Materials Project）、HAXPES スペクトル、結晶情報（COD。選択中の元素で検索するリンク付き）、状態図（CPDDB）、物性情報（AtomWork）へ移動できます。選択中の元素に HAXPES データがあれば、MDR（HAXPES）タブに切り替えるボタンも出ます。</p></div>
+  <div lang="en"><p>"Related resources" under the periodic table links to XAFS simulations (Materials Project), HAXPES spectra, crystal structures (COD, with a search for the selected element), phase diagrams (CPDDB) and properties (AtomWork). If the selected element has HAXPES data, a button switches to the MDR (HAXPES) tab.</p></div>
+</section>
+
+<section id="data">
+  <h2><span lang="ja">8. データの出典・更新日・ライセンス</span><span lang="en">8. Data sources, dates and licenses</span></h2>
+  <div lang="ja">
+    <ul>
+      <li>検索ページの一番下に、<b>データの作成日</b>（IXDB 索引、XANES 類似検索の索引、NIST の文献値）と、<b>プロット用スペクトルの取り込み状況</b>（データベースごとの取り込み済み件数／全件数と最終取り込み日）を表示しています。</li>
+      <li>MDR などはブラウザから直接データを取得できないため、プロット用のスペクトルは事前に取り込んでいます（IHEP はその都度 IHEP の API から取得）。</li>
+      <li>ライセンスはプロットの下に表示しています（例：MDR は各データの表示に従う、LISA・CLS は CC BY 4.0、XASLIB はパブリックドメイン）。ESRF は規約で複製が禁止されているため、リンクのみです。FAME（SSHADE）はデータの取得にログインが必要なため、リンクのみです。</li>
+      <li>論文などで使う際は、各データの DOI と各データベースの引用ルールに従ってください（ページ下部の案内、「引用文をコピー」も参照）。</li>
+    </ul>
+  </div>
+  <div lang="en">
+    <ul>
+      <li>The bottom of the search page shows the <b>data dates</b> (IXDB index, XANES matching index, NIST reference values) and the <b>import status of the spectra for plotting</b> (imported/total per database and last import date).</li>
+      <li>MDR and others cannot be read directly from the browser, so spectra for plotting are imported in advance (IHEP is fetched from its API each time).</li>
+      <li>Licenses are shown under each plot (e.g. MDR as stated per dataset, LISA and CLS CC BY 4.0, XASLIB public domain). ESRF terms prohibit reproduction, and FAME (SSHADE) requires a login, so both are link-only.</li>
+      <li>When using data in publications, cite each dataset's DOI and follow each database's citation rules (see the page footer and "Copy citations").</li>
+    </ul>
+  </div>
+</section>
+
+<section id="faq">
+  <h2><span lang="ja">9. よくある質問</span><span lang="en">9. FAQ</span></h2>
+  <div lang="ja">
+    <h3>DOI を押してもページがなかなか開きません</h3>
+    <p>MDR の応答が遅く、1 分近くかかることがあります。少し待ってください。</p>
+    <h3>「プロット（準備中）」と出ます</h3>
+    <p>そのデータのスペクトルはまだ取り込んでいません。取り込み状況はページ下部で確認できます。</p>
+    <h3>類似検索で自分のファイルが読み込めません</h3>
+    <p>数値の列が 2 列以上あるテキストファイルにしてください（コメント行は # で始める）。読み込めない形式があれば、管理者に知らせてください。</p>
+    <h3>類似検索の結果が施設によって偏ります</h3>
+    <p>エネルギー補正が合っていない可能性があります。リファレンスを読み込むか、微調整で重なりを見ながら合わせてください。「比較する対象」で施設を絞ると、校正の違いの影響を小さくできます。</p>
+  </div>
+  <div lang="en">
+    <h3>The DOI page takes a long time to open</h3>
+    <p>MDR can be slow (up to about a minute). Please wait.</p>
+    <h3>"Plot (in preparation)" is shown</h3>
+    <p>That spectrum has not been imported yet. The import status is at the bottom of the search page.</p>
+    <h3>My file cannot be read in XANES matching</h3>
+    <p>Use a text file with at least two numeric columns (comment lines starting with #). Please report formats that cannot be read.</p>
+    <h3>Matching results are biased toward one facility</h3>
+    <p>The energy correction may be off. Load a reference, or fine-tune while watching the overlay. Restricting "Compare with" to one facility reduces the effect of calibration differences.</p>
+  </div>
+</section>
+</div>
+<script>
+(() => {
+  // 言語は検索ページと同じ（?lang= → 保存した設定 → 日本語）
+  const LANGS = ["ja", "en"];
+  let lang = new URLSearchParams(location.search).get("lang");
+  if (!LANGS.includes(lang)) { try { lang = localStorage.getItem("refspec-lang"); } catch {} }
+  if (!LANGS.includes(lang)) lang = "ja";
+  const apply = () => {
+    document.documentElement.dataset.lang = lang;
+    document.documentElement.lang = lang;
+    document.title = lang === "ja" ? "利用者ガイド：標準試料スペクトル検索（試作）" : "User guide: Reference Spectra Search (prototype)";
+    document.getElementById("lang").textContent = lang === "ja" ? "English" : "日本語";
+    document.getElementById("back").href = `./?lang=${lang}`;
+  };
+  document.getElementById("lang").onclick = () => {
+    lang = lang === "ja" ? "en" : "ja";
+    try { localStorage.setItem("refspec-lang", lang); } catch {}
+    apply();
+  };
+  apply();
+})();
+</script>
+</body>
+</html>
