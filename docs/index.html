@@ -235,12 +235,15 @@
       energy: "エネルギー (eV)", normAxis: "規格化 μ(E)",
       kmu: "μt", kfl: "蛍光 If/I0", key: "I/I0", knorm: "施設で規格化済み", kref: "リファレンス μt",
       srcmu: "μt = ln(I0/I)", srcfl: "If/I0", srcey: "検出強度 / I0", srcnorm: "施設が前縁除去・規格化したデータ", srcref: "リファレンス箔の μt",
+      kxps: "強度 (a.u.)", srcxps: "光電子強度（施設の加工データ）", bindingEnergy: "結合エネルギー (eV)", region: "領域",
+      plotSrcHx: "MDR HAXPES DB の各データセット（SPring-8 BL46XU）の加工データ（*_sp.csv）です（表示用に間引きあり）。",
       normInfo: "E0 = {e0} eV（一次微分の最大）、edge step = {step}",
       normNote: "前縁を直線、吸収端より上を{post}で近似して差し引き、edge step が 1 になるよう規格化した簡易処理です。解析には Athena などで改めて処理してください。",
       postLin: "直線", postQuad: "2 次式", stepBad: "edge step が求められないため規格化できません。",
       plotSrc: "MDR XAFS DB の各データセット（{src}）から取り出したデータです（表示用に間引きあり）。",
       plotSrcDb: "{db}から取り出したデータです（表示用に間引きあり）。", plotSrcLive: "{db}の API から直接取得したデータです。",
-      plotPending: "プロット（準備中）", plotLic: "ライセンス：{lic}", plotMissing: "このデータのスペクトルはまだ取り込んでいません（試作版のため、取り込み済みは一部のみです）。",
+      plotPending: "プロット（準備中）", impItem: "{db} {n}/{total} 件（{date}）",
+      impStatus: "プロット用スペクトルの取り込み状況（取り込み済み/全件、最終取り込み日）：{items}", plotLic: "ライセンス：{lic}", plotMissing: "このデータのスペクトルはまだ取り込んでいません（試作版のため、取り込み済みは一部のみです）。",
       relNote: "International XAFS DB Portal と同じ補足情報です。外部サイトはトップページまたは検索ページを開きます。",
     },
     en: {
@@ -287,12 +290,15 @@
       energy: "Energy (eV)", normAxis: "Normalized μ(E)",
       kmu: "μt", kfl: "Fluorescence If/I0", key: "I/I0", knorm: "Normalized by facility", kref: "Reference μt",
       srcmu: "μt = ln(I0/I)", srcfl: "If/I0", srcey: "Detected intensity / I0", srcnorm: "Background-subtracted and normalized by the facility", srcref: "μt of the reference foil",
+      kxps: "Intensity (a.u.)", srcxps: "Photoelectron intensity (processed by the facility)", bindingEnergy: "Binding energy (eV)", region: "Region",
+      plotSrcHx: "Processed data (*_sp.csv) from each dataset of MDR HAXPES DB (SPring-8 BL46XU), thinned out for display.",
       normInfo: "E0 = {e0} eV (maximum of the first derivative), edge step = {step}",
       normNote: "Simple processing: a line below the edge and a {post} above it are subtracted and the edge step is scaled to 1. Use Athena or similar for analysis.",
       postLin: "line", postQuad: "quadratic", stepBad: "Cannot normalize because the edge step could not be determined.",
       plotSrc: "Data taken from each dataset of MDR XAFS DB ({src}), thinned out for display.",
       plotSrcDb: "Data taken from {db}, thinned out for display.", plotSrcLive: "Data fetched directly from the {db} API.",
-      plotPending: "Plot (in preparation)", plotLic: " License: {lic}", plotMissing: "The spectrum of this record has not been imported yet (prototype: only part of the data is imported so far).",
+      plotPending: "Plot (in preparation)", impItem: "{db} {n}/{total} ({date})",
+      impStatus: "Spectra imported for plotting (imported/total, last import): {items}", plotLic: " License: {lic}", plotMissing: "The spectrum of this record has not been imported yet (prototype: only part of the data is imported so far).",
       relNote: "Same supplementary resources as the International XAFS DB Portal. External links open each site's top or search page.",
     },
   };
@@ -602,24 +608,33 @@
   }
 
   // ---- スペクトル表示 ----
-  // MDR・LISA・XASLIB・CLS はブラウザから直接取得できない (CORS) ため、tools/build_spectra.py と
-  // tools/build_overseas_spectra.py で docs/spectra/ に取り出したものを使う。IHEP は API から直接取得する。
+  // MDR・LISA・XASLIB・CLS はブラウザから直接取得できない (CORS) ため、tools/build_spectra.py・
+  // build_haxpes_spectra.py・build_overseas_spectra.py で docs/spectra/ に取り出したものを使う。IHEP は API から直接取得する。
   // プロットの対象を "<DB>:<ID>" で表す（ID の規則は build_overseas_spectra.py の ident と同じ）
   function plotKey(r) {
     const m = (re, s) => (re.exec(s || "") || [])[1] || "";
-    if (r.method === "HAXPES") return "";
-    if (r.method === "XAFS" || r.db === "MDR") { const id = m(/^https:\/\/mdr\.nims\.go\.jp\/datasets\/([0-9a-f-]{36})$/, r.page); return id && `MDR:${id}`; }
+    const mdr = m(/^https:\/\/mdr\.nims\.go\.jp\/datasets\/([0-9a-f-]{36})$/, r.page);
+    if (r.method === "HAXPES") return mdr && `HAXPES:${mdr}`;  // tools/build_haxpes_spectra.py
+    if (r.method === "XAFS" || r.db === "MDR") return mdr && `MDR:${mdr}`;
     const id = r.db === "IHEP" ? m(/\/element\/(\d+)/, r.page) : r.db === "LISA" ? m(/\/data\/([^/]+)\.xdi$/, r.page)
       : r.db === "XASLIB" ? m(/\/spectrum\/(\d+)/, r.page) : r.db === "CLS" ? r.wid || "" : "";
     return id && `${r.db}:${id}`;
   }
   // 取り込み済みの ID 一覧（build_spectra.py が作る）。読めないときは全部押せるようにしておく
-  let available = null;
+  let available = null, importInfo = {};
   fetch("spectra/available.json").then(r => r.ok ? r.json() : null).then(d => {
     if (!d) return;
-    available = Object.fromEntries(Object.entries(d).map(([k, v]) => [k, new Set(v)]));
-    render(); renderCart();
+    available = Object.fromEntries(Object.entries(d.ids || d).map(([k, v]) => [k, new Set(v)]));
+    importInfo = d.info || {};
+    render(); renderCart(); renderFooter();
   }).catch(() => {});
+  // ページ下部に出すプロット用スペクトルの取り込み状況（DB ごとの件数と取り込み日）
+  function importStatus() {
+    const names = { MDR: "MDR XAFS DB", HAXPES: "MDR HAXPES DB" };
+    const items = Object.entries(importInfo).filter(([db]) => available?.[db]).map(([db, x]) => t("impItem",
+      { db: names[db] || dbName(db), n: available[db].size.toLocaleString(), total: x.total.toLocaleString(), date: x.updated }));
+    return items.length ? `<br><span class="impstat">${esc(t("impStatus", { items: items.join(lang === "ja" ? "、" : "; ") }))}</span>` : "";
+  }
   const plotReady = key => {
     const i = key.indexOf(":"), db = key.slice(0, i);
     return db === "IHEP" || !available || !!available[db]?.has(key.slice(i + 1));
@@ -713,7 +728,7 @@
     if (!plot.rec) { box.hidden = true; return; }
     box.hidden = false;
     const r = plot.rec;
-    const head = `<div class="phead"><h3>${esc(nm(r))} — ${esc(r.edge)}${r.crystal ? `, ${esc(r.crystal)}` : ""}, ${esc(facLabel(r))}</h3>
+    const head = `<div class="phead"><h3>${esc(nm(r))} — ${esc([r.edge, r.crystal, facLabel(r) + (r.method === "HAXPES" && r.beamline ? ` ${r.beamline}` : "")].filter(Boolean).join(", "))}</h3>
       <span class="pbtns"><button type="button" class="linkbtn" id="plotBig">${esc(t(plot.big ? "shrink" : "enlarge"))}</button>
       <button type="button" class="linkbtn" id="plotClose">${esc(t("close"))}</button></span></div>`;
     const body = plot.err === "missing" ? `<p class="status">${esc(t("plotMissing"))}</p>`
@@ -731,19 +746,20 @@
 
   function plotBody() {
     const S = plot.data.s, s = S[Math.min(plot.idx, S.length - 1)];
-    // 施設で規格化済みのデータ（立命館の .tey など）はそのまま表示する
-    const facNorm = s.t === "norm";
+    // 施設で規格化済みのデータ（立命館の .tey など）と HAXPES はそのまま表示する。HAXPES は横軸が結合エネルギー（右から左へ増える）
+    const xps = plot.data.axis === "be", facNorm = s.t === "norm" || xps;
     const nz = facNorm ? null : normalize(s.x, s.y);
     const isNorm = !facNorm && plot.view === "norm" && nz && nz.y;
     const ys = isNorm ? nz.y : s.y;
-    let x0 = s.x[0], x1 = s.x[s.x.length - 1];
+    let x0 = Math.min(s.x[0], s.x[s.x.length - 1]), x1 = Math.max(s.x[0], s.x[s.x.length - 1]);
     if (plot.range === "xanes" && nz) { x0 = Math.max(x0, nz.e0 - 30); x1 = Math.min(x1, nz.e0 + 70); }
     const idx = s.x.map((v, i) => i).filter(i => s.x[i] >= x0 && s.x[i] <= x1);
     let lo = Math.min(...idx.map(i => ys[i])), hi = Math.max(...idx.map(i => ys[i]));
     const pad = (hi - lo || 1) * 0.06; lo -= pad; hi += pad;
-    const W = 640, H = 310, L = 66, R = 12, T = 10, B = 50;
-    const X = v => L + (v - x0) / (x1 - x0 || 1) * (W - L - R), Y = v => T + (hi - v) / (hi - lo || 1) * (H - T - B);
-    const fmtY = v => Math.abs(v) >= 1000 ? v.toExponential(1) : +v.toPrecision(4);
+    const W = 640, H = 310, L = 74, R = 12, T = 10, B = 50;
+    const X = v => L + (xps ? x1 - v : v - x0) / (x1 - x0 || 1) * (W - L - R), Y = v => T + (hi - v) / (hi - lo || 1) * (H - T - B);
+    // 大きな値（HAXPES の計数など）は k・M を付けて短くする
+    const fmtY = v => Math.abs(v) >= 1e6 ? `${+(v / 1e6).toPrecision(3)}M` : Math.abs(v) >= 1e3 ? `${+(v / 1e3).toPrecision(3)}k` : +v.toPrecision(4);
     const line = pts => pts.map(([a, b], k) => `${k ? "L" : "M"}${X(a).toFixed(1)},${Y(b).toFixed(1)}`).join("");
     const fit = (p, a, b) => line(Array.from({ length: 41 }, (_, k) => { const v = a + (b - a) * k / 40; return [v, polyval(p, v)]; }));
     const showFit = !isNorm && nz && nz.y;
@@ -757,22 +773,22 @@
         ${nz && nz.e0 >= x0 && nz.e0 <= x1 ? `<line class="e0" x1="${X(nz.e0)}" x2="${X(nz.e0)}" y1="${T}" y2="${H - B}"/>` : ""}
         <path class="curve" d="${line(idx.map(i => [s.x[i], ys[i]]))}"/>
       </g>
-      <text x="${(L + W - R) / 2}" y="${H - 4}" text-anchor="middle">${esc(t("energy"))}</text>
+      <text x="${(L + W - R) / 2}" y="${H - 4}" text-anchor="middle">${esc(t(xps ? "bindingEnergy" : "energy"))}</text>
       <text transform="translate(4 ${(T + H - B) / 2}) rotate(-90)" dy="1em" text-anchor="middle">${esc(isNorm ? t("normAxis") : t("k" + s.t))}</text>
     </svg>`;
     const seg = (key, cur, opts) => `<span class="seg">${opts.map(([v, label, dis]) =>
       `<button type="button" data-${key}="${v}" class="${cur === v ? "on" : ""}"${dis ? " disabled" : ""}>${esc(t(label))}</button>`).join("")}</span>`;
     const ctrl = `<div class="ctrl">
-      ${S.length > 1 ? `<label>${esc(t("series"))} <select id="plotSeries">${S.map((x, i) => `<option value="${i}"${i === plot.idx ? " selected" : ""}>${esc(x.n)} (${esc(t("k" + x.t))})</option>`).join("")}</select></label>`
+      ${S.length > 1 ? `<label>${esc(t(xps ? "region" : "series"))} <select id="plotSeries">${S.map((x, i) => `<option value="${i}"${i === plot.idx ? " selected" : ""}>${esc(x.n)}${xps ? "" : ` (${esc(t("k" + x.t))})`}</option>`).join("")}</select></label>`
         : `<span class="hint" style="margin:0">${esc(s.n)}</span>`}
       ${facNorm ? "" : seg("view", isNorm ? "norm" : "raw", [["raw", "viewRaw"], ["norm", "viewNorm", !(nz && nz.y)]])}
-      ${seg("range", nz ? plot.range : "all", [["all", "rangeAll"], ["xanes", "rangeXanes", !nz]])}
+      ${xps ? "" : seg("range", nz ? plot.range : "all", [["all", "rangeAll"], ["xanes", "rangeXanes", !nz]])}
     </div>`;
     const info = [t("src" + s.t)];
     if (nz) info.push(nz.y ? t("normInfo", { e0: nz.e0.toFixed(1), step: +nz.step.toPrecision(3) }) : t("stepBad"));
     const note = isNorm ? `<p class="hint">${esc(t("normNote", { post: t(nz.order === 2 ? "postQuad" : "postLin") }))}</p>` : "";
     const d = plot.data;
-    const src = d.live ? t("plotSrcLive", { db: dbName(d.src) }) : IXDB_DBS[d.src] ? t("plotSrcDb", { db: dbName(d.src) })
+    const src = d.live ? t("plotSrcLive", { db: dbName(d.src) }) : xps ? t("plotSrcHx") : IXDB_DBS[d.src] ? t("plotSrcDb", { db: dbName(d.src) })
       : t("plotSrc", { src: facShort(d.src) || d.src });
     // LISA は Zenodo の登録 (doi:10.5281/zenodo.10778068) が CC BY 4.0、XASLIB は about ページでパブリックドメインと明記
     const lic = d.lic || { LISA: "CC BY 4.0", XASLIB: "Public Domain" }[d.src];
@@ -787,9 +803,9 @@
   }
 
   function renderFooter() {
-    if (state.method === "IXDB") { $("footer").innerHTML = t("footIx", { date: esc(ixdbGenerated()) }); return; }
+    if (state.method === "IXDB") { $("footer").innerHTML = t("footIx", { date: esc(ixdbGenerated()) }) + importStatus(); return; }
     const m = METHODS[state.method];
-    $("footer").innerHTML = t("footMdr", { db: m.dbName, dbDoi: m.dbDoi, extra: t(state.method === "XAFS" ? "citeXafs" : "citeHaxpes") });
+    $("footer").innerHTML = t("footMdr", { db: m.dbName, dbDoi: m.dbDoi, extra: t(state.method === "XAFS" ? "citeXafs" : "citeHaxpes") }) + importStatus();
   }
 
   function fillFacility() {

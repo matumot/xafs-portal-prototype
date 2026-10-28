@@ -22,6 +22,8 @@ It searches public metadata (DOI records and a knowledge graph) and links direct
 - Records of the same material are grouped across databases (IXDB tab), shown with Japanese/English names and formulas from [MatVoc Explorer](https://matvoc.nims.go.jp/explore/) (NIMS).
 - IXDB tab: a **Related** column gives per-material links (as on the MatVoc pages linked from the IXDB portal): MatVoc, Materials Project XAS simulation, COD crystal structures, and AtomWork.
 - MDR XAFS records (MDR tab, and MDR rows in the IXDB tab) and IXDB records from IHEP, LISA, XASLIB and CLS have a **Plot** button that shows the dataset's spectrum on the page: raw (μt = ln(I0/I), If/I0 or I/I0 as provided by each facility) or background-subtracted and normalized (simple pre-edge line / post-edge fit, edge step = 1), full range or XANES region. Datasets with several files (repeated scans, reference foil, TEY/PFY) can be switched.
+- MDR HAXPES records also have a **Plot** button: intensity vs. binding energy (high to low), with the regions of each dataset (wide, VB, core levels) selectable.
+- The page footer shows how many spectra have been imported for plotting per database and when; records not imported yet show "Plot (in preparation)".
 - Your selection is kept across tabs; download the MDR records as zip, save the list as CSV (DOI, URL), or copy citations.
 - A **Related resources** box (same as the IXDB portal) links to Materials Project, MDR HAXPES DB, COD, CPDDB and AtomWork; if the selected element has HAXPES data, a button opens it in the MDR (HAXPES) tab.
 
@@ -40,7 +42,9 @@ Browser (docs/index.html: static page, no server needed)
                  └ built by tools/build_ixdb_index.py (IXDB SPARQL + DataCite + MatVoc Explorer)
 Spectral data → fetched directly from each database (MDR zip, database pages)
 Plots       → docs/spectra/<MDR ID>.json, built by tools/build_spectra.py from each MDR XAFS DB zip
+              docs/spectra/haxpes/<MDR ID>.json, built by tools/build_haxpes_spectra.py (*_sp.csv of each dataset)
               docs/spectra/{lisa,xaslib,cls}/<ID>.json, built by tools/build_overseas_spectra.py
+              docs/spectra/available.json: imported IDs, totals and import dates (written by each build script)
               IHEP: fetched live from its API (CORS allowed)
 ```
 
@@ -76,11 +80,12 @@ Not plotted: FAME (SSHADE) requires a login to export data. ESRF ID21 data are o
 - **Update the IXDB index:** `python tools/build_ixdb_index.py --out docs/ixdb_index.js` (Python 3.9+, no extra packages). The first run fetches about 1,200 MatVoc pages one at a time to respect its rate limit (~1 hour) and caches them in `cache/matvoc.json`; later runs reuse the cache. Use `--no-matvoc` to skip.
 - **Update the spectra for plotting:** `python tools/build_spectra.py --out docs/spectra` (needs PyYAML). It downloads the zip of each of the ~2,265 MDR XAFS DB datasets (several hundred MB in total; a few hours, as MDR often answers slowly or with 504) and skips datasets already in `docs/spectra`, so it can be re-run to fill in failures or new datasets.
 - **Update the overseas spectra:** `python tools/build_overseas_spectra.py --index docs/ixdb_index.js --out docs/spectra` (after updating the IXDB index; ~1,100 spectra from LISA, XASLIB and CLS; skips existing files).
+- **Update the HAXPES spectra:** `python tools/build_haxpes_spectra.py --out docs/spectra` (37 datasets, one at a time).
 
 ## Limitations
 
 - MDR responds slowly: opening a DOI or starting a zip download can take 30 s to 1 min.
-- Plots are only available for spectra imported so far (prototype): part of the 2,265 MDR XAFS DB datasets (import in progress) and 675 of the 693 CLS spectra (the other 18 are no longer in CLS); LISA and XASLIB are complete. Other records show "not imported yet". Re-run the build scripts to fill in the rest.
+- Plots are only available for spectra imported so far (prototype; the footer shows the current counts): the MDR XAFS DB import is in progress, and 18 of the 693 CLS spectra are no longer in CLS. Re-run the build scripts to fill in the rest.
 - Element highlighting in the MDR tabs reflects registrations as of 2026-10-22; other elements can still be searched.
 - MatVoc names and links reflect the time the index was built; materials without a MatVoc entry (or without formula/links there) show the record title only.
 - Prototype: information shown is based on the metadata registered in each database.
@@ -90,6 +95,7 @@ Not plotted: FAME (SSHADE) requires a login to export data. ESRF ID21 data are o
 - **Code** (`docs/index.html`, `tools/`): [MIT License](LICENSE)
 - **IXDB index** (`docs/ixdb_index.js`): derived from M. Ishii et al., "International XAFS DB RDF and Ontology" (NIMS MDR, [doi:10.48505/nims.5513](https://doi.org/10.48505/nims.5513), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)). Facility information for MDR records is taken from DataCite metadata (CC0). Material names, formulas and related links are taken from [MatVoc](https://matvoc.nims.go.jp/explore/) (NIMS Materials Data Platform); follow NIMS's terms of use.
 - **Spectra for plotting** (`docs/spectra/`): extracted (and thinned out) from the datasets of MDR XAFS DB ([doi:10.48505/nims.1447](https://doi.org/10.48505/nims.1447)). Each file keeps the license of its dataset (CC BY 4.0 or CC BY-NC-SA 4.0, as shown on the dataset page); not covered by the MIT License.
+- **HAXPES spectra for plotting** (`docs/spectra/haxpes/`): from MDR HAXPES DB; CC BY-NC-SA 4.0 (as stated in each dataset's metadata). Not covered by the MIT License.
 - **Overseas spectra for plotting** (`docs/spectra/lisa/`, `xaslib/`, `cls/`): extracted (and thinned out) from LISA XAS Database, XASLIB and CLS XAS Database; they keep each database's terms. Not covered by the MIT License.
   - LISA XAS Database: CC BY 4.0 (A. Puri, [doi:10.5281/zenodo.10778068](https://doi.org/10.5281/zenodo.10778068))
   - XASLIB: public domain ("can be used for any purpose, without restrictions", [about page](https://xaslib.xrayabsorption.org/about))

@@ -194,7 +194,7 @@ def main():
                 fails += 1
                 print(f"[{i}/{len(recs)}] FAILED {rec['db']} {ident(rec)}: {e}", flush=True)
     print(f"done, {fails} failed (re-run to retry)")
-    write_manifest(args.out)
+    write_manifest(args.out, {db: sum(r["db"] == db for r in recs) for db in args.db})
 
 
 if __name__ == "__main__":

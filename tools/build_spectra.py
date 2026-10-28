@@ -42,9 +42,9 @@ MAX_POINTS = 1000
 HC = 12398.42  # eV·Å
 
 
-def list_datasets():
+def list_datasets(collection=COLLECTION):
     url = DATACITE + "?" + urllib.parse.urlencode({
-        "query": f'subjects.subject:"{COLLECTION}"', "page[size]": "1000",
+        "query": f'subjects.subject:"{collection}"', "page[size]": "1000",
         "fields[dois]": "doi,titles,url,publisher"}) + "&page[cursor]=1"
     out = []
     while url:
@@ -253,11 +253,18 @@ def build_one(rec, out_dir):
     return rec, f"{len(series)} series"
 
 
-def write_manifest(root):
+def write_manifest(root, totals=None):
     """取り込み済み（スペクトルが 1 本以上ある）ものの ID 一覧を root/available.json に書く。
     ページはこれを見て、未取り込みのものを「プロット（準備中）」と表示する。
-    build_spectra.py と build_overseas_spectra.py の最後に毎回作り直す。"""
+    totals（{DB: 対象の全件数}）を渡すと、その DB の全件数と取り込み日を info に記録する
+    （ページ下部の取り込み状況の表示用。渡さなかった DB は前回の値を残す）。
+    各 build_*_spectra.py の最後に毎回作り直す。"""
     root = Path(root)
+    path = root / "available.json"
+    prev = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    info = prev.get("info", {})
+    for db, n in (totals or {}).items():
+        info[db] = {"total": n, "updated": time.strftime("%Y-%m-%d")}
     out = {}
     for db, d in [("MDR", root)] + [(x.name.upper(), x) for x in sorted(root.iterdir()) if x.is_dir()]:
         ids = []
@@ -270,8 +277,8 @@ def write_manifest(root):
             except ValueError:
                 pass
         out[db] = ids
-    (root / "available.json").write_text(json.dumps(out, separators=(",", ":")), encoding="utf-8")
-    print("available:", {k: len(v) for k, v in out.items()})
+    path.write_text(json.dumps({"info": info, "ids": out}, separators=(",", ":")), encoding="utf-8")
+    print("available:", {k: f"{len(v)}/{info.get(k, {}).get('total', '?')}" for k, v in out.items()})
 
 
 def main():
@@ -298,7 +305,7 @@ def main():
                 fails.append(str(e))
                 print(f"[{i}/{len(recs)}] FAILED: {e}", flush=True)
     print(f"done, {len(fails)} failed (re-run to retry)")
-    write_manifest(out_dir)
+    write_manifest(out_dir, None if args.limit else {"MDR": len(recs)})
 
 
 if __name__ == "__main__":
