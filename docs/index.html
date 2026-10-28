@@ -307,7 +307,7 @@
       srcmu: "μt = ln(I0/I)", srcfl: "If/I0", srcey: "検出強度 / I0", srcnorm: "施設が前縁除去・規格化したデータ", srcref: "リファレンス箔の μt",
       kxps: "強度 (a.u.)", srcxps: "光電子強度（施設の加工データ）", bindingEnergy: "結合エネルギー (eV)", region: "領域",
       plotSrcHx: "MDR HAXPES DB の各データセット（SPring-8 BL46XU）の加工データ（*_sp.csv）です（表示用に間引きあり）。",
-      refEdge: "緑の破線：{label} 端 {v} eV（NIST X-ray Transition Energies, SRD 128、{src}）", refDiff: "。このデータの E0 との差 {d} eV",
+      refEdge: "緑の破線：{label} 端の文献値 {v} eV（NIST X-ray Transition Energies, SRD 128、{src}）", refDiff: "。このデータの E0 との差 {d} eV",
       refSrc_direct: "直接測定値", refSrc_combined: "組み合わせ値", refSrc_theory: "理論値",
       refXps: "緑の破線：結合エネルギーの文献値（NIST XPS Database, SRD 20 の推奨値）",
       refXpsMixed: "緑の破線：結合エネルギーの文献値（NIST XPS Database, SRD 20 の推奨値。推奨値のない準位は Elam et al. の表〔xraydb〕）",
@@ -405,7 +405,7 @@
       srcmu: "μt = ln(I0/I)", srcfl: "If/I0", srcey: "Detected intensity / I0", srcnorm: "Background-subtracted and normalized by the facility", srcref: "μt of the reference foil",
       kxps: "Intensity (a.u.)", srcxps: "Photoelectron intensity (processed by the facility)", bindingEnergy: "Binding energy (eV)", region: "Region",
       plotSrcHx: "Processed data (*_sp.csv) from each dataset of MDR HAXPES DB (SPring-8 BL46XU), thinned out for display.",
-      refEdge: "Green dashed line: {label} edge {v} eV (NIST X-ray Transition Energies, SRD 128, {src})", refDiff: "; E0 of this data differs by {d} eV",
+      refEdge: "Green dashed line: reference {label} edge energy {v} eV (NIST X-ray Transition Energies, SRD 128, {src})", refDiff: "; E0 of this data differs by {d} eV",
       refSrc_direct: "direct measurement", refSrc_combined: "combined value", refSrc_theory: "theory",
       refXps: "Green dashed lines: reference binding energies (NIST XPS Database, SRD 20 recommended values)",
       refXpsMixed: "Green dashed lines: reference binding energies (NIST XPS Database, SRD 20 recommended values; levels without one from Elam et al. via xraydb)",
@@ -798,7 +798,7 @@
     if (!xps) {
       const m = /^([A-Z][a-z]?) (K|L1|L2|L3)-edge$/.exec(rec?.edge || "");
       const e = m && refE.xafs?.[m[1]]?.[m[2]];
-      if (e) out.push({ v: e.v, label: `NIST ${m[1]} ${m[2]}`, src: e.src });
+      if (e) out.push({ v: e.v, label: `${m[1]} ${m[2]}`, src: e.src });
     } else {
       const m = /^([A-Z][a-z]?) (\d[spdf](?: \d[spdf])*)/.exec(s.n);  // "Pt 5s 4f 5p" のように複数の準位を含む領域もある
       const add = (el, keep) => Object.entries(refE.xps?.[el] || {}).filter(([o, e]) => keep(o, e))
@@ -1298,7 +1298,7 @@
     const pad = (hi - lo || 1) * 0.06; lo -= pad; hi += pad;
     const W = 640, L = 74, Rr = 12, T = 22, x0 = gx[0], x1 = gx[gx.length - 1];
     const X = v => L + (v - x0) / (x1 - x0) * (W - L - Rr);
-    const nref = nist && nist.v >= x0 && nist.v <= x1 ? [{ v: nist.v, label: `NIST ${state.el} ${mt.edge}` }] : [];
+    const nref = nist && nist.v >= x0 && nist.v <= x1 ? [{ v: nist.v, label: `${state.el} ${mt.edge}` }] : [];
     const lab = refLabelRows(nref, X), Bm = 50 + (lab.rows ? 12 + lab.rows * 18 : 0), H = 260 + Bm, Y = v => T + (hi - v) / (hi - lo || 1) * (H - T - Bm);
     const path = a => { let s = "", pen = false; a.forEach((v, i) => { if (v == null) { pen = false; return; } s += `${pen ? "L" : "M"}${X(gx[i]).toFixed(1)},${Y(v).toFixed(1)}`; pen = true; }); return s; };
     const fmtY = v => +v.toPrecision(3);
