@@ -800,15 +800,40 @@
       const e = m && refE.xafs?.[m[1]]?.[m[2]];
       if (e) out.push({ v: e.v, label: `NIST ${m[1]} ${m[2]}`, src: e.src });
     } else {
-      const m = /^([A-Z][a-z]?) (\d[spdf])/.exec(s.n);
+      const m = /^([A-Z][a-z]?) (\d[spdf](?: \d[spdf])*)/.exec(s.n);  // "Pt 5s 4f 5p" のように複数の準位を含む領域もある
       const add = (el, keep) => Object.entries(refE.xps?.[el] || {}).filter(([o, e]) => keep(o, e))
         .forEach(([o, e]) => out.push({ v: e.v, label: `${el} ${o}`, src: e.src }));
-      if (m) add(m[1], o => o.startsWith(m[2]));
+      if (m) add(m[1], o => m[2].split(" ").some(n => o.startsWith(n)));
       // wide には表面汚染の C も足す（O の 1s は Elam の表の値が酸化物の実測と 10 eV 以上違うので足さない）
       else if (/^wide$/i.test(s.n)) [...new Set([...(rec?.elements || []), "C"])]
         .forEach(el => add(el, (o, e) => e.v >= 20 && !/1\/2$/.test(o)));
     }
     return out.filter(r => r.v >= x0 && r.v <= x1);
+  }
+  // 文献値の線のラベルはグラフの邪魔にならないよう、横軸の目盛りの下に並べる。
+  // 近いものは横にずらし（線の位置から引き出し線と矢印で結ぶ）、それでも重なるときは段を下げる（最大 3 段）。
+  // 収まらないものはラベルを省く（線にマウスを重ねると名前が出る）。左右の端では切れないように寄せる
+  function refLabelRows(refs, X, W = 640, L = 74, R = 12) {
+    const ends = [], placed = [], gap = 6, maxShift = 90;
+    refs.map(r => ({ r, x: X(r.v), w: r.label.length * 8 })).sort((a, b) => a.x - b.x).forEach(p => {
+      const lo = L + p.w / 2, hi = W - R - p.w / 2;
+      for (let k = 0; k < 3; k++) {
+        let tx = Math.min(Math.max(p.x, lo), hi);
+        if (k < ends.length && tx - p.w / 2 < ends[k] + gap) tx = ends[k] + gap + p.w / 2;
+        if (tx > hi || Math.abs(tx - p.x) > maxShift) continue;
+        if (k >= ends.length) ends.push(0);
+        ends[k] = tx + p.w / 2;
+        placed.push({ ...p, tx, row: k });
+        return;
+      }
+    });
+    const arrow = `<defs><marker id="refArrow" viewBox="0 0 6 6" refX="3" refY="0" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,6 L3,0 L6,6 z" style="fill:var(--ref)"/></marker></defs>`;
+    return { rows: ends.length, svg: base => (placed.length ? arrow : "") + placed.map(p => {
+      const ty = base + 30 + p.row * 18;
+      return `<polyline class="refline" points="${p.x},${base + 2} ${p.x},${base + 22} ${p.tx},${ty}" fill="none" style="stroke-dasharray:none;stroke-width:.8" marker-start="url(#refArrow)"/>`
+        + `<text class="reflabel" x="${p.tx}" y="${ty + 13}" text-anchor="middle">${esc(p.r.label)}</text>`;
+    }).join("") };
   }
   // 画面幅に応じてプロットの置き場所を切り替える（main の 2 列レイアウトと同じ境目）
   const wideMq = matchMedia("(min-width: 981px)");
@@ -904,14 +929,16 @@
     const idx = s.x.map((v, i) => i).filter(i => s.x[i] >= x0 && s.x[i] <= x1);
     let lo = Math.min(...idx.map(i => ys[i])), hi = Math.max(...idx.map(i => ys[i]));
     const pad = (hi - lo || 1) * 0.06; lo -= pad; hi += pad;
-    const W = 640, H = 310, L = 74, R = 12, T = 10, B = 50;
-    const X = v => L + (xps ? x1 - v : v - x0) / (x1 - x0 || 1) * (W - L - R), Y = v => T + (hi - v) / (hi - lo || 1) * (H - T - B);
+    const refs = refMarkers(plot.rec, s, xps, x0, x1);
+    const W = 640, L = 74, R = 12, T = 10;
+    const X0 = v => L + (xps ? x1 - v : v - x0) / (x1 - x0 || 1) * (W - L - R);
+    const lab = refLabelRows(refs, X0), B = 50 + (lab.rows ? 12 + lab.rows * 18 : 0), H = 260 + B;
+    const X = X0, Y = v => T + (hi - v) / (hi - lo || 1) * (H - T - B);
     // 大きな値（HAXPES の計数など）は k・M を付けて短くする
     const fmtY = v => Math.abs(v) >= 1e6 ? `${+(v / 1e6).toPrecision(3)}M` : Math.abs(v) >= 1e3 ? `${+(v / 1e3).toPrecision(3)}k` : +v.toPrecision(4);
     const line = pts => pts.map(([a, b], k) => `${k ? "L" : "M"}${X(a).toFixed(1)},${Y(b).toFixed(1)}`).join("");
     const fit = (p, a, b) => line(Array.from({ length: 41 }, (_, k) => { const v = a + (b - a) * k / 40; return [v, polyval(p, v)]; }));
     const showFit = !isNorm && nz && nz.y;
-    const refs = refMarkers(plot.rec, s, xps, x0, x1);
     const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(nm(plot.rec))}">
       <defs><clipPath id="pc"><rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}"/></clipPath></defs>
       ${niceTicks(x0, x1, 6).map(v => `<line class="grid" x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${H - B}"/><text x="${X(v)}" y="${H - B + 4}" dy="1em" text-anchor="middle">${v}</text>`).join("")}
@@ -922,8 +949,8 @@
         ${nz && nz.e0 >= x0 && nz.e0 <= x1 ? `<line class="e0" x1="${X(nz.e0)}" x2="${X(nz.e0)}" y1="${T}" y2="${H - B}"/>` : ""}
         ${refs.map((r, k) => `<line class="refline" x1="${X(r.v)}" x2="${X(r.v)}" y1="${T}" y2="${H - B}"><title>${esc(r.label)} ${r.v} eV</title></line>`).join("")}
         <path class="curve" d="${line(idx.map(i => [s.x[i], ys[i]]))}"/>
-        ${refs.map((r, k) => `<text class="reflabel" transform="translate(${X(r.v) + 3} ${T + 4}) rotate(90)">${esc(r.label)}</text>`).join("")}
       </g>
+      ${lab.svg(H - B)}
       <text x="${(L + W - R) / 2}" y="${H - 4}" text-anchor="middle">${esc(t(xps ? "bindingEnergy" : "energy"))}</text>
       <text transform="translate(4 ${(T + H - B) / 2}) rotate(-90)" dy="1em" text-anchor="middle">${esc(isNorm ? t("normAxis") : t("k" + s.t))}</text>
     </svg>`;
@@ -1269,8 +1296,10 @@
     const vals = [...A, ...B].filter(v => v != null);
     let lo = Math.min(...vals), hi = Math.max(...vals);
     const pad = (hi - lo || 1) * 0.06; lo -= pad; hi += pad;
-    const W = 640, H = 310, L = 74, Rr = 12, T = 22, Bm = 50, x0 = gx[0], x1 = gx[gx.length - 1];
-    const X = v => L + (v - x0) / (x1 - x0) * (W - L - Rr), Y = v => T + (hi - v) / (hi - lo || 1) * (H - T - Bm);
+    const W = 640, L = 74, Rr = 12, T = 22, x0 = gx[0], x1 = gx[gx.length - 1];
+    const X = v => L + (v - x0) / (x1 - x0) * (W - L - Rr);
+    const nref = nist && nist.v >= x0 && nist.v <= x1 ? [{ v: nist.v, label: `NIST ${state.el} ${mt.edge}` }] : [];
+    const lab = refLabelRows(nref, X), Bm = 50 + (lab.rows ? 12 + lab.rows * 18 : 0), H = 260 + Bm, Y = v => T + (hi - v) / (hi - lo || 1) * (H - T - Bm);
     const path = a => { let s = "", pen = false; a.forEach((v, i) => { if (v == null) { pen = false; return; } s += `${pen ? "L" : "M"}${X(gx[i]).toFixed(1)},${Y(v).toFixed(1)}`; pen = true; }); return s; };
     const fmtY = v => +v.toPrecision(3);
     h += `<div class="plotbox" style="margin-top:8px"><div class="ctrl"><span class="seg">
@@ -1281,7 +1310,7 @@
       ${niceTicks(lo, hi, 5).map(v => `<line class="grid" x1="${L}" x2="${W - Rr}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${L - 5}" y="${Y(v)}" dy=".35em" text-anchor="end">${fmtY(v)}</text>`).join("")}
       <line class="axis" x1="${L}" x2="${L}" y1="${T}" y2="${H - Bm}"/><line class="axis" x1="${L}" x2="${W - Rr}" y1="${H - Bm}" y2="${H - Bm}"/>
       ${[R.wlo, R.whi].map(g => `<line class="e0" x1="${X(d.ec + g)}" x2="${X(d.ec + g)}" y1="${T}" y2="${H - Bm}"/>`).join("")}
-      ${nist && nist.v >= x0 && nist.v <= x1 ? `<line class="refline" x1="${X(nist.v)}" x2="${X(nist.v)}" y1="${T}" y2="${H - Bm}"/><text class="reflabel" transform="translate(${X(nist.v) + 3} ${T + 4}) rotate(90)">NIST ${esc(state.el)} ${esc(mt.edge)}</text>` : ""}
+      ${nref.map(r => `<line class="refline" x1="${X(r.v)}" x2="${X(r.v)}" y1="${T}" y2="${H - Bm}"/>`).join("")}${lab.svg(H - Bm)}
       <path class="curve" d="${path(B)}"/><path class="curve2" d="${path(A)}"/>
       <text x="${L + 6}" y="${T - 6}" style="fill:var(--warn)">━ ${esc(t("mYou"))}</text>
       <text x="${L + 150}" y="${T - 6}" style="fill:var(--accent)">━ ${esc(lang === "ja" && c.it.ja ? c.it.ja : c.it.n)} (${esc(srcLabel(c.it))})</text>
