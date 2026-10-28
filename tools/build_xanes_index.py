@@ -25,6 +25,7 @@ import collections
 import json
 import math
 import re
+import time
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -226,7 +227,9 @@ def main():
                    "src": g.get("src", {}), "items": g["items"]}
         (out / f"{name}.json").write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
         summary[name] = len(g["items"])
-    (out / "index.json").write_text(json.dumps(summary, separators=(",", ":")), encoding="utf-8")
+    # generated：作成日（ページ下部に表示）、edges：元素_吸収端 → スペクトル数
+    (out / "index.json").write_text(json.dumps({"generated": time.strftime("%Y-%m-%d"), "edges": summary},
+                                               separators=(",", ":")), encoding="utf-8")
     print(f"{len(summary)} element-edges, {sum(summary.values())} spectra")
 
 

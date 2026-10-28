@@ -16,6 +16,7 @@ import html
 import json
 import re
 import subprocess
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -98,7 +99,7 @@ def main():
                 levels[k] = {"v": v, "src": "nist"}
         if levels:
             xps[el] = levels
-    payload = {"xafs": edges, "xps": xps,
+    payload = {"generated": time.strftime("%Y-%m-%d"), "xafs": edges, "xps": xps,
                "sources": {"xafs": "NIST SRD 128 (doi:10.18434/T4859Z)", "nist": "NIST SRD 20 recommended (doi:10.18434/T4T88K)",
                            "elam": "Elam, Ravel & Sieber, Radiat. Phys. Chem. 63, 121 (2002) via xraydb"}}
     Path(args.out).write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
