@@ -8,13 +8,13 @@
   :root {
     --bg: #f6f7f9; --panel: #ffffff; --ink: #1d2430; --muted: #5d6878; --line: #dde2e8;
     --accent: #1f5c99; --accent-soft: #e6eef7; --avail: #d9ebf9; --avail-ink: #12406b;
-    --sel: #1f5c99; --sel-ink: #ffffff; --warn: #8a5a00; --err: #b3261e;
+    --sel: #1f5c99; --sel-ink: #ffffff; --warn: #8a5a00; --err: #b3261e; --ref: #2e7d32;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       --bg: #12161c; --panel: #1a2029; --ink: #e5e9ef; --muted: #9aa5b4; --line: #2c3542;
       --accent: #7fb4e8; --accent-soft: #223246; --avail: #23384f; --avail-ink: #cfe3f7;
-      --sel: #7fb4e8; --sel-ink: #0d1520; --warn: #e0b45a; --err: #f2948c;
+      --sel: #7fb4e8; --sel-ink: #0d1520; --warn: #e0b45a; --err: #f2948c; --ref: #81c784;
     }
   }
   * { box-sizing: border-box; }
@@ -122,6 +122,10 @@
   table.mres th.sort { cursor: pointer; text-decoration: underline dotted; }
   table.mres th.sorted { color: var(--accent); }
   .plotbox .curve2 { fill: none; stroke: var(--warn); stroke-width: 1.8; }
+  .plotbox .refline { stroke: var(--ref); stroke-width: 1.2; stroke-dasharray: 6 3; }
+  .plotbox svg text.reflabel { fill: var(--ref); font-size: 10px; }
+  #plotSlotWide .plotbox svg text.reflabel { font-size: 13px; }
+  @media (max-width: 600px) { .plotbox svg text.reflabel { font-size: 15px; } }
   .mnote { font-size: 12px; color: var(--muted); }
   .mnote li { margin-bottom: 3px; }
   tr.plotting td { background: var(--accent-soft); }
@@ -300,6 +304,10 @@
       srcmu: "μt = ln(I0/I)", srcfl: "If/I0", srcey: "検出強度 / I0", srcnorm: "施設が前縁除去・規格化したデータ", srcref: "リファレンス箔の μt",
       kxps: "強度 (a.u.)", srcxps: "光電子強度（施設の加工データ）", bindingEnergy: "結合エネルギー (eV)", region: "領域",
       plotSrcHx: "MDR HAXPES DB の各データセット（SPring-8 BL46XU）の加工データ（*_sp.csv）です（表示用に間引きあり）。",
+      refEdge: "緑の破線：{label} 端 {v} eV（NIST X-ray Transition Energies, SRD 128、{src}）", refDiff: "。このデータの E0 との差 {d} eV",
+      refSrc_direct: "直接測定値", refSrc_combined: "組み合わせ値", refSrc_theory: "理論値",
+      refXps: "緑の破線：結合エネルギーの文献値（NIST XPS Database, SRD 20 の推奨値）",
+      refXpsMixed: "緑の破線：結合エネルギーの文献値（NIST XPS Database, SRD 20 の推奨値。推奨値のない準位は Elam et al. の表〔xraydb〕）",
       normInfo: "E0 = {e0} eV（一次微分の最大）、edge step = {step}",
       normNote: "前縁を直線、吸収端より上を{post}で近似して差し引き、edge step が 1 になるよう規格化した簡易処理です。解析には Athena などで改めて処理してください。",
       postLin: "直線", postQuad: "2 次式", stepBad: "edge step が求められないため規格化できません。",
@@ -393,6 +401,10 @@
       srcmu: "μt = ln(I0/I)", srcfl: "If/I0", srcey: "Detected intensity / I0", srcnorm: "Background-subtracted and normalized by the facility", srcref: "μt of the reference foil",
       kxps: "Intensity (a.u.)", srcxps: "Photoelectron intensity (processed by the facility)", bindingEnergy: "Binding energy (eV)", region: "Region",
       plotSrcHx: "Processed data (*_sp.csv) from each dataset of MDR HAXPES DB (SPring-8 BL46XU), thinned out for display.",
+      refEdge: "Green dashed line: {label} edge {v} eV (NIST X-ray Transition Energies, SRD 128, {src})", refDiff: "; E0 of this data differs by {d} eV",
+      refSrc_direct: "direct measurement", refSrc_combined: "combined value", refSrc_theory: "theory",
+      refXps: "Green dashed lines: reference binding energies (NIST XPS Database, SRD 20 recommended values)",
+      refXpsMixed: "Green dashed lines: reference binding energies (NIST XPS Database, SRD 20 recommended values; levels without one from Elam et al. via xraydb)",
       normInfo: "E0 = {e0} eV (maximum of the first derivative), edge step = {step}",
       normNote: "Simple processing: a line below the edge and a {post} above it are subtracted and the edge step is scaled to 1. Use Athena or similar for analysis.",
       postLin: "line", postQuad: "quadratic", stepBad: "Cannot normalize because the edge step could not be determined.",
@@ -761,10 +773,33 @@
     renderPlot(); markPlotRow();
     $("plot").scrollIntoView({ block: "nearest", behavior: "smooth" });
     try {
-      const data = await loadSpectrum(key);
+      const [data] = await Promise.all([loadSpectrum(key), loadRefEnergies()]);
       if (plot.rec === r) plot.data = data;
     } catch (e) { if (plot.rec === r) plot.err = e.message; }
     if (plot.rec === r) renderPlot();
+  }
+  // 比べる文献値（tools/build_reference_energies.py）：吸収端は NIST SRD 128、内殻の結合エネルギーは NIST SRD 20 の推奨値（なければ Elam らの表）
+  let refE = null;
+  const loadRefEnergies = () => refE ? Promise.resolve(refE)
+    : fetch("spectra/refenergies.json").then(r => r.ok ? r.json() : {}).then(d => refE = d).catch(() => refE = {});
+  // 表示範囲 [x0, x1] にある文献値の線：XAFS は記録の吸収端、HAXPES は領域名の準位（wide は試料の元素と C の主な準位）
+  function refMarkers(rec, s, xps, x0, x1) {
+    if (!refE) return [];
+    const out = [];
+    if (!xps) {
+      const m = /^([A-Z][a-z]?) (K|L1|L2|L3)-edge$/.exec(rec?.edge || "");
+      const e = m && refE.xafs?.[m[1]]?.[m[2]];
+      if (e) out.push({ v: e.v, label: `NIST ${m[1]} ${m[2]}`, src: e.src });
+    } else {
+      const m = /^([A-Z][a-z]?) (\d[spdf])/.exec(s.n);
+      const add = (el, keep) => Object.entries(refE.xps?.[el] || {}).filter(([o, e]) => keep(o, e))
+        .forEach(([o, e]) => out.push({ v: e.v, label: `${el} ${o}`, src: e.src }));
+      if (m) add(m[1], o => o.startsWith(m[2]));
+      // wide には表面汚染の C も足す（O の 1s は Elam の表の値が酸化物の実測と 10 eV 以上違うので足さない）
+      else if (/^wide$/i.test(s.n)) [...new Set([...(rec?.elements || []), "C"])]
+        .forEach(el => add(el, (o, e) => e.v >= 20 && !/1\/2$/.test(o)));
+    }
+    return out.filter(r => r.v >= x0 && r.v <= x1);
   }
   // 画面幅に応じてプロットの置き場所を切り替える（main の 2 列レイアウトと同じ境目）
   const wideMq = matchMedia("(min-width: 981px)");
@@ -867,6 +902,7 @@
     const line = pts => pts.map(([a, b], k) => `${k ? "L" : "M"}${X(a).toFixed(1)},${Y(b).toFixed(1)}`).join("");
     const fit = (p, a, b) => line(Array.from({ length: 41 }, (_, k) => { const v = a + (b - a) * k / 40; return [v, polyval(p, v)]; }));
     const showFit = !isNorm && nz && nz.y;
+    const refs = refMarkers(plot.rec, s, xps, x0, x1);
     const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(nm(plot.rec))}">
       <defs><clipPath id="pc"><rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}"/></clipPath></defs>
       ${niceTicks(x0, x1, 6).map(v => `<line class="grid" x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${H - B}"/><text x="${X(v)}" y="${H - B + 4}" dy="1em" text-anchor="middle">${v}</text>`).join("")}
@@ -875,7 +911,9 @@
       <g clip-path="url(#pc)">
         ${showFit ? `<path class="fit" d="${fit(nz.pre, x0, nz.e0 + 20)}"/><path class="fit" d="${fit(nz.post, nz.e0 - 20, x1)}"/>` : ""}
         ${nz && nz.e0 >= x0 && nz.e0 <= x1 ? `<line class="e0" x1="${X(nz.e0)}" x2="${X(nz.e0)}" y1="${T}" y2="${H - B}"/>` : ""}
+        ${refs.map((r, k) => `<line class="refline" x1="${X(r.v)}" x2="${X(r.v)}" y1="${T}" y2="${H - B}"><title>${esc(r.label)} ${r.v} eV</title></line>`).join("")}
         <path class="curve" d="${line(idx.map(i => [s.x[i], ys[i]]))}"/>
+        ${refs.map((r, k) => `<text class="reflabel" transform="translate(${X(r.v) + 3} ${T + 4}) rotate(90)">${esc(r.label)}</text>`).join("")}
       </g>
       <text x="${(L + W - R) / 2}" y="${H - 4}" text-anchor="middle">${esc(t(xps ? "bindingEnergy" : "energy"))}</text>
       <text transform="translate(4 ${(T + H - B) / 2}) rotate(-90)" dy="1em" text-anchor="middle">${esc(isNorm ? t("normAxis") : t("k" + s.t))}</text>
@@ -890,6 +928,13 @@
     </div>`;
     const info = [t("src" + s.t)];
     if (nz) info.push(nz.y ? t("normInfo", { e0: nz.e0.toFixed(1), step: +nz.step.toPrecision(3) }) : t("stepBad"));
+    // 文献値との比較
+    const allRefs = refMarkers(plot.rec, s, xps, -Infinity, Infinity);
+    if (!xps && allRefs[0]) {
+      const r = allRefs[0], d0 = nz && nz.e0 - r.v;
+      info.push(t("refEdge", { label: r.label, v: r.v, src: t("refSrc_" + r.src) }) + (nz ? t("refDiff", { d: `${d0 >= 0 ? "+" : ""}${d0.toFixed(1)}` }) : ""));
+    }
+    if (xps && refs.length) info.push(t(refs.some(r => r.src === "elam") ? "refXpsMixed" : "refXps"));
     const note = isNorm ? `<p class="hint">${esc(t("normNote", { post: t(nz.order === 2 ? "postQuad" : "postLin") }))}</p>` : "";
     const d = plot.data;
     const src = d.live ? t("plotSrcLive", { db: dbName(d.src) }) : xps ? t("plotSrcHx") : IXDB_DBS[d.src] ? t("plotSrcDb", { db: dbName(d.src) })
@@ -1055,7 +1100,7 @@
     if (!state.el || !mt.edge) return;
     const want = `${state.el}_${mt.edge}`;
     try {
-      const d = await (await fetch(`spectra/xanes/${want}.json`)).json();
+      const [d] = await Promise.all([fetch(`spectra/xanes/${want}.json`).then(r => r.json()), loadRefEnergies()]);
       if (`${state.el}_${mt.edge}` === want) mt.data = d;
     } catch (e) { mt.err = e.message; }
     renderMatch();
@@ -1207,7 +1252,7 @@
         <td class="num">${fmt("total", r.m.total)}</td>${M_KEYS.map(([k]) => `<td class="num">${fmt(k, r.m[k])}</td>`).join("")}</tr>`).join("")}
       </tbody></table></div></div>`;
     // 重ね描き
-    const c = rows[mt.sel] || rows[0];
+    const c = rows[mt.sel] || rows[0], nist = refE?.xafs?.[state.el]?.[mt.edge];
     const gx = [];
     for (let g = d.grid[0]; g <= d.grid[1] + 1e-9; g += d.grid[2]) gx.push(d.ec + g);
     const der = a => a.map((v, i) => i && v != null && a[i - 1] != null ? (v - a[i - 1]) / d.grid[2] : null);
@@ -1227,6 +1272,7 @@
       ${niceTicks(lo, hi, 5).map(v => `<line class="grid" x1="${L}" x2="${W - Rr}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${L - 5}" y="${Y(v)}" dy=".35em" text-anchor="end">${fmtY(v)}</text>`).join("")}
       <line class="axis" x1="${L}" x2="${L}" y1="${T}" y2="${H - Bm}"/><line class="axis" x1="${L}" x2="${W - Rr}" y1="${H - Bm}" y2="${H - Bm}"/>
       ${[R.wlo, R.whi].map(g => `<line class="e0" x1="${X(d.ec + g)}" x2="${X(d.ec + g)}" y1="${T}" y2="${H - Bm}"/>`).join("")}
+      ${nist && nist.v >= x0 && nist.v <= x1 ? `<line class="refline" x1="${X(nist.v)}" x2="${X(nist.v)}" y1="${T}" y2="${H - Bm}"/><text class="reflabel" transform="translate(${X(nist.v) + 3} ${T + 4}) rotate(90)">NIST ${esc(state.el)} ${esc(mt.edge)}</text>` : ""}
       <path class="curve" d="${path(B)}"/><path class="curve2" d="${path(A)}"/>
       <text x="${L + 6}" y="${T - 6}" style="fill:var(--warn)">━ ${esc(t("mYou"))}</text>
       <text x="${L + 150}" y="${T - 6}" style="fill:var(--accent)">━ ${esc(lang === "ja" && c.it.ja ? c.it.ja : c.it.n)} (${esc(srcLabel(c.it))})</text>
