@@ -101,6 +101,29 @@
   /* スマホの縦画面では幅が変わらず拡大の意味がないので出さない */
   @media (max-width: 600px) { .plotbox.big svg text { font-size: 18px; } #plotBig { display: none; } }
   .plotbox .pbtns { display: flex; gap: 12px; white-space: nowrap; }
+  /* XANES 類似検索 */
+  main.match .std { display: none; }
+  main:not(.match) #matchPanel { display: none; }
+  .modebar.match #facilityLabel, .modebar.match #facility { display: none; }
+  .mform { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 6px 0 10px; }
+  .mform label { font-size: 12px; color: var(--muted); display: block; }
+  .mform select, .mform input[type=number] { width: 100%; padding: 5px 7px; border: 1px solid var(--line); border-radius: 5px;
+    background: var(--panel); color: var(--ink); font: inherit; font-size: 12.5px; }
+  .mstep { border-top: 1px solid var(--line); padding-top: 8px; margin-top: 8px; }
+  .mstep h3 { font-size: 13px; margin: 0 0 4px; color: var(--accent); }
+  .mstep input[type=file] { font: inherit; font-size: 12.5px; max-width: 100%; }
+  .mcols { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 12.5px; margin-top: 6px; }
+  .mcols select { font: inherit; font-size: 12.5px; padding: 3px 5px; border: 1px solid var(--line); border-radius: 5px;
+    background: var(--panel); color: var(--ink); }
+  table.mres td, table.mres th { font-size: 12px; padding: 4px 5px; }
+  table.mres td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  table.mres tbody tr { cursor: pointer; }
+  table.mres tbody tr.on td { background: var(--accent-soft); }
+  table.mres th.sort { cursor: pointer; text-decoration: underline dotted; }
+  table.mres th.sorted { color: var(--accent); }
+  .plotbox .curve2 { fill: none; stroke: var(--warn); stroke-width: 1.8; }
+  .mnote { font-size: 12px; color: var(--muted); }
+  .mnote li { margin-bottom: 3px; }
   tr.plotting td { background: var(--accent-soft); }
   tr.plotting td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
   .plotbox[hidden] { display: none; }
@@ -137,6 +160,7 @@
     <button type="button" data-v="IXDB" class="on" data-i18n="tabIXDB"></button>
     <button type="button" data-v="XAFS" data-i18n="tabXAFS"></button>
     <button type="button" data-v="HAXPES" data-i18n="tabHAXPES"></button>
+    <button type="button" data-v="MATCH" data-i18n="tabMatch"></button>
   </span>
   <label for="facility" id="facilityLabel"></label>
   <select id="facility"></select>
@@ -152,32 +176,33 @@
   </section>
 
   <section class="panel">
-    <h2 data-i18n="step2"></h2>
-    <div class="filters">
+    <h2 class="std" data-i18n="step2"></h2>
+    <div class="filters std">
       <div class="wide"><label for="q" data-i18n="qLabel"></label>
         <input id="q" type="search" data-i18n-ph="qPh"></div>
       <div class="xafs-only"><label for="edge" data-i18n="edge"></label><select id="edge"><option value="" data-i18n="all"></option></select></div>
       <div class="xafs-only"><label for="crystal" data-i18n="crystal"></label><select id="crystal"><option value="" data-i18n="all"></option></select></div>
       <div class="xafs-only"><label for="mtype" data-i18n="mtype"></label><select id="mtype"><option value="" data-i18n="all"></option></select></div>
     </div>
-    <div class="status" id="status"></div>
-    <div id="plotSlotNarrow"><div class="plotbox" id="plot" hidden></div></div>
-    <div class="list">
+    <div class="status std" id="status"></div>
+    <div id="plotSlotNarrow" class="std"><div class="plotbox" id="plot" hidden></div></div>
+    <div class="list std">
       <table>
         <thead id="thead"></thead>
         <tbody id="rows"></tbody>
       </table>
     </div>
 
-    <h2 style="margin-top:14px" data-i18n="step3"></h2>
-    <div class="cart" id="cart"></div>
-    <div class="btns">
+    <h2 class="std" style="margin-top:14px" data-i18n="step3"></h2>
+    <div class="cart std" id="cart"></div>
+    <div class="btns std">
       <button type="button" class="primary" id="dlzip" disabled data-i18n="dlzip"></button>
       <button type="button" id="dlcsv" disabled data-i18n="dlcsv"></button>
       <button type="button" id="cite" disabled data-i18n="cite"></button>
       <button type="button" id="clearSel" disabled data-i18n="clearSel"></button>
     </div>
-    <p class="hint" data-i18n="dlHint"></p>
+    <p class="hint std" data-i18n="dlHint"></p>
+    <div id="matchPanel"></div>
   </section>
 </main>
 
@@ -194,6 +219,37 @@
     ja: {
       title: "標準試料スペクトル検索", badge: "試作版", docTitle: "標準試料スペクトル検索（試作）", langBtn: "English",
       lead: "NIMS MDR に登録された XAFS／HAXPES 標準試料を DOI 登録情報（DataCite）から、または各国の XAFS データベースを International XAFS DB Portal（IXDB）の知識グラフから検索します。データ本体は選んだ試料だけ各データベースから直接取得します。",
+      tabMatch: "XANES 類似検索", ptHintMatch: "色付き：比較できる XANES がある元素（取り込み済みのスペクトルから作成）",
+      mTitle: "② 測定データと似ている標準試料を探す（XANES）", mEdge: "吸収端", mCrystal: "分光結晶（MDR のみ）", mScope: "比較する対象",
+      mScopeAll: "すべてのデータベース", mTop: "表示する候補数", mAny: "指定しない",
+      mPick: "左の周期表から元素を選んでください。",
+      mSample: "測定データ（試料）", mSampleHint: "テキスト形式（2 列 E・μ、Athena・XDI、PF9809 形式 .dat など）。エネルギーは eV（keV なら自動で換算）。",
+      mRef: "エネルギー補正（リファレンス）", mRefHint: "同じ測定条件で測ったリファレンス（金属箔など）を読み込み、DB の同じ物質のリファレンスと E0 をそろえます。リファレンスがないときは補正量を手で入れてください。",
+      mRefFile: "測定したリファレンス（{el} の金属箔など）", mRefInFile: "測定データのファイル内のリファレンス（I1/I2）を使う",
+      mRefBase: "基準：DB の {el} 金属（箔）の半値エネルギー {eh} eV（DB 側も施設ごとにこの値にそろえてあります）",
+      mRefNoBase: "この吸収端は DB に金属のスペクトルがないため、リファレンスでの補正はできません。補正量を手で入れてください。",
+      mNoCal: "（未補正）", mNoCalTip: "このデータの施設には同じ元素の金属のスペクトルがないため、エネルギーを補正していません",
+      mOffset: "エネルギー補正量 (eV)", mOffsetCalc: "半値エネルギー：測定したリファレンス {u} eV → 基準 {d} eV（補正 {o} eV）",
+      mOffsetNone: "補正なし（リファレンスを読み込むか、補正量を入力してください。施設間で数 eV ずれることがあります）",
+      mCols: "列：", mColE: "エネルギー", mColY: "強度", mYcol: "その列", mYln: "ln(A/B)", mYratio: "A/B",
+      mLoaded: "{name}：{n} 点（{lo}〜{hi} eV）", mParseFail: "{name} を読み取れませんでした（数値の列が見つかりません）",
+      mRun: "比較する", mNoEdge: "測定データの {ec} eV 付近に吸収端が見つかりません（エネルギーの範囲・単位と吸収端を確認してください）",
+      mResult: "③ 結果：似ている順（{n} 件中、上位 {top} 件）", mNoCand: "比べられる DB のスペクトルがありません",
+      mRank: "順位", mName: "試料", mSrc: "データ", mTotal: "総合", mPearson: "Pearson", mDeriv: "微分 Pearson", mCos: "コサイン",
+      mSpear: "Spearman", mRf: "R 因子", mRuz: "Ruzicka", mSortHint: "見出しをクリックするとその指標で並べ替えます。行をクリックすると下に重ねて表示します。",
+      mViewMu: "規格化 μ(E)", mViewD: "一次微分", mYou: "測定データ", mE0: "E0 = {e0} eV（補正後）、edge step = {step}",
+      mHow: "比較の方法と類似度の指標",
+      mHowBody: `<ul>
+        <li>測定データと DB のスペクトルを同じ手順で規格化します：吸収端の文献値 Ec（{ec} eV）付近で E0（一次微分の最大）を求め、前縁を直線、吸収端より上を直線または 2 次式で近似して edge step = 1 にそろえ、吸収端より上の傾きを差し引いて平らにします（Athena の flatten と同じ考え方）。</li>
+        <li>Ec−30〜Ec+70 eV を 0.5 eV 間隔にそろえ、両方にデータのある範囲で比べます。施設やビームラインで校正の基準が違うため（例：Cu K 端の校正値 8980.23 eV（SPring-8）、8980.52 eV（あいち SR）、8981.3 eV（SAGA-LS））、DB 側は施設・分光結晶ごとに、その元素の金属（箔）の半値エネルギー（規格化 μ = 0.5）の中央値を共通の基準値にそろえてあります。測定データは、読み込んだリファレンスの半値エネルギーをその基準値に合わせて補正します（金属は前縁の肩のため一次微分の最大の位置が安定しないので、半値エネルギーを使います）。</li>
+        <li><b>Pearson 相関係数・コサイン類似度・Ruzicka 類似度</b>：XANES の照合アルゴリズム ELSIE で使われている指標（C. Zheng et al., <i>npj Comput. Mater.</i> <b>4</b>, 12 (2018), <a href="https://doi.org/10.1038/s41524-018-0067-x" target="_blank" rel="noopener">doi:10.1038/s41524-018-0067-x</a>）。Ruzicka は負の値を 0 として計算。</li>
+        <li><b>微分 Pearson</b>：一次微分スペクトルの Pearson 相関。ピーク位置や肩の形に敏感です（施設間のスペクトルの比較に一次微分を使った例：M. Ishii et al., <i>STAM Methods</i> <b>3</b>, 2197518 (2023), <a href="https://doi.org/10.1080/27660400.2023.2197518" target="_blank" rel="noopener">doi:10.1080/27660400.2023.2197518</a>）。</li>
+        <li><b>Spearman 順位相関</b>：強度の大小関係だけを見るので、強度の目盛りの違いに強い指標（Ti K 端 XANES の計算コード比較で使用：<a href="https://arxiv.org/abs/2303.17089" target="_blank" rel="noopener">arXiv:2303.17089</a>）。</li>
+        <li><b>R 因子</b>：Σ(測定−DB)² / Σ測定²。小さいほど似ています（Athena の線形結合フィットの R-factor と同じ形：B. Ravel & M. Newville, <i>J. Synchrotron Rad.</i> <b>12</b>, 537 (2005)）。</li>
+        <li><b>総合</b>：上の 6 指標それぞれの順位の平均。ELSIE が複数の指標を組み合わせて精度を上げているのにならった簡易版です。</li>
+        <li>試作版です。似ている順は参考で、物質の同定を保証するものではありません。比べる DB のスペクトルは取り込み済みのもの（下の取り込み状況）だけです。</li>
+      </ul>`,
+      footMatch: "XANES 類似検索：取り込み済みのスペクトル（MDR XAFS DB・LISA・XASLIB・CLS）から作った索引と比べます。測定データはブラウザの中だけで処理し、どこにも送信しません。",
       tabIXDB: "IXDB（XAFS 国際横断）", tabXAFS: "MDR（XAFS）", tabHAXPES: "MDR（HAXPES）", methodAria: "データソース",
       facility: "施設", database: "データベース", allFacs: "すべての施設", allDbs: "すべてのデータベース",
       haxpesFac: "SPring-8（BL46XU, JASRI）", unknownFac: "施設不明",
@@ -249,6 +305,37 @@
     en: {
       title: "Reference Spectra Search", badge: "Prototype", docTitle: "Reference Spectra Search (prototype)", langBtn: "日本語",
       lead: "Search XAFS/HAXPES reference samples registered in NIMS MDR via their DOI metadata (DataCite), or XAFS databases worldwide via the knowledge graph of the International XAFS DB Portal (IXDB). Data files are retrieved directly from each database, only for the samples you select.",
+      tabMatch: "XANES matching", ptHintMatch: "Highlighted: elements with XANES to compare (built from the imported spectra)",
+      mTitle: "2. Find reference samples similar to your data (XANES)", mEdge: "Edge", mCrystal: "Mono crystal (MDR only)", mScope: "Compare with",
+      mScopeAll: "All databases", mTop: "Candidates to show", mAny: "Any",
+      mPick: "Select an element in the periodic table.",
+      mSample: "Your data (sample)", mSampleHint: "Text files (2 columns E, μ; Athena; XDI; PF9809 .dat, etc.). Energy in eV (keV is converted).",
+      mRef: "Energy correction (reference)", mRefHint: "Load a reference (e.g. metal foil) measured under the same conditions; its E0 is aligned with the same material's reference in the database. Without a reference, enter the shift by hand.",
+      mRefFile: "Your reference (e.g. {el} metal foil)", mRefInFile: "Use the reference in the data file (I1/I2)",
+      mRefBase: "Reference point: half-step energy of {el} metal (foil) in the database, {eh} eV (database spectra are aligned to it per facility)",
+      mRefNoBase: "No metal spectrum for this edge in the database, so a reference cannot be used. Enter the shift by hand.",
+      mNoCal: "(not aligned)", mNoCalTip: "No metal spectrum of this element from this facility, so its energy is not aligned",
+      mOffset: "Energy shift (eV)", mOffsetCalc: "Half-step energy: your reference {u} eV → reference point {d} eV (shift {o} eV)",
+      mOffsetNone: "No shift (load a reference or enter the shift; facilities can differ by a few eV)",
+      mCols: "Columns:", mColE: "Energy", mColY: "Signal", mYcol: "column", mYln: "ln(A/B)", mYratio: "A/B",
+      mLoaded: "{name}: {n} points ({lo}–{hi} eV)", mParseFail: "Could not read {name} (no numeric columns found)",
+      mRun: "Compare", mNoEdge: "No absorption edge found near {ec} eV in your data (check the energy range/unit and the edge)",
+      mResult: "3. Results: most similar first (top {top} of {n})", mNoCand: "No database spectra to compare",
+      mRank: "#", mName: "Sample", mSrc: "Data", mTotal: "Overall", mPearson: "Pearson", mDeriv: "Deriv. Pearson", mCos: "Cosine",
+      mSpear: "Spearman", mRf: "R-factor", mRuz: "Ruzicka", mSortHint: "Click a header to sort by that metric; click a row to overlay it below.",
+      mViewMu: "Normalized μ(E)", mViewD: "First derivative", mYou: "Your data", mE0: "E0 = {e0} eV (after shift), edge step = {step}",
+      mHow: "How spectra are compared, and the similarity metrics",
+      mHowBody: `<ul>
+        <li>Your data and the database spectra are normalized the same way: E0 (maximum of the first derivative) is found near the tabulated edge energy Ec ({ec} eV); a line below the edge and a line or quadratic above it are fitted, the edge step is scaled to 1, and the post-edge slope is removed (flattened, as in Athena).</li>
+        <li>Spectra are put on a 0.5 eV grid from Ec−30 to Ec+70 eV and compared where both have data. Calibration conventions differ between facilities (e.g. Cu K-edge set to 8980.23 eV at SPring-8, 8980.52 eV at Aichi SR, 8981.3 eV at SAGA-LS), so database spectra are aligned per facility and mono crystal: the median half-step energy (normalized μ = 0.5) of that element's metal (foil) is moved to a common reference point. Your data are shifted so that your reference's half-step energy matches that point (the half-step energy is used because the pre-edge shoulder of metals makes the derivative maximum unstable).</li>
+        <li><b>Pearson correlation, cosine similarity, Ruzicka similarity</b>: metrics used in the ELSIE XANES matching algorithm (C. Zheng et al., <i>npj Comput. Mater.</i> <b>4</b>, 12 (2018), <a href="https://doi.org/10.1038/s41524-018-0067-x" target="_blank" rel="noopener">doi:10.1038/s41524-018-0067-x</a>). Negative values are set to 0 for Ruzicka.</li>
+        <li><b>Derivative Pearson</b>: Pearson correlation of the first derivatives; sensitive to peak and shoulder positions (first derivatives were used to compare spectra across facilities in M. Ishii et al., <i>STAM Methods</i> <b>3</b>, 2197518 (2023), <a href="https://doi.org/10.1080/27660400.2023.2197518" target="_blank" rel="noopener">doi:10.1080/27660400.2023.2197518</a>).</li>
+        <li><b>Spearman rank correlation</b>: uses only the ordering of intensities, so it is robust to intensity scale (used in a multi-code benchmark of Ti K-edge XANES, <a href="https://arxiv.org/abs/2303.17089" target="_blank" rel="noopener">arXiv:2303.17089</a>).</li>
+        <li><b>R-factor</b>: Σ(yours−DB)² / Σyours²; smaller is more similar (same form as the R-factor of linear combination fitting in Athena: B. Ravel &amp; M. Newville, <i>J. Synchrotron Rad.</i> <b>12</b>, 537 (2005)).</li>
+        <li><b>Overall</b>: the mean of the ranks in the six metrics above, a simple version of how ELSIE combines several metrics.</li>
+        <li>Prototype: the ranking is a guide and does not identify the material. Only imported spectra are compared (see the import status below).</li>
+      </ul>`,
+      footMatch: "XANES matching compares your data with an index built from the imported spectra (MDR XAFS DB, LISA, XASLIB, CLS). Your files are processed only in your browser and are not sent anywhere.",
       tabIXDB: "IXDB (XAFS, international)", tabXAFS: "MDR (XAFS)", tabHAXPES: "MDR (HAXPES)", methodAria: "Data source",
       facility: "Facility", database: "Database", allFacs: "All facilities", allDbs: "All databases",
       haxpesFac: "SPring-8 (BL46XU, JASRI)", unknownFac: "facility unknown",
@@ -373,6 +460,7 @@
   }
 
   function availableElements() {
+    if (state.method === "MATCH") return new Set(Object.keys(mt.index || {}).map(k => k.split("_")[0]));
     if (state.method === "HAXPES") return new Set((state.haxpes || []).flatMap(r => r.elements));
     if (state.method === "IXDB") return new Set((state.ixdb || []).filter(matchFacility).map(x => x.el));
     const facs = state.facility ? [state.facility] : Object.keys(FACILITIES);
@@ -384,7 +472,7 @@
       b.classList.toggle("avail", av.has(b.dataset.sym));
       b.classList.toggle("sel", b.dataset.sym === state.el);
     });
-    $("ptHint").textContent = state.method === "HAXPES" ? t("ptHintHx")
+    $("ptHint").textContent = state.method === "MATCH" ? t("ptHintMatch") : state.method === "HAXPES" ? t("ptHintHx")
       : state.method === "IXDB" ? t("ptHintIx", { date: ixdbGenerated() }) : t("ptHintMdr");
     renderRelated();
   }
@@ -493,6 +581,7 @@
   }
 
   async function selectElement(sym) {
+    if (state.method === "MATCH") { state.el = sym; paintTable(); return selectMatchElement(sym); }
     if (!state.haxpes) loadHaxpes().then(renderRelated).catch(() => {});
     state.el = sym; paintTable();
     setStatus("searching", { el: sym });
@@ -559,6 +648,7 @@
   }
 
   function render() {
+    if (state.method === "MATCH") return renderMatch();
     const hx = state.method === "HAXPES", ix = state.method === "IXDB";
     const th = keys => "<tr><th></th>" + keys.map(k => `<th>${esc(t(k))}</th>`).join("") + "</tr>";
     $("thead").innerHTML = hx ? th(["thSample", "thFacBl", "thData"])
@@ -803,6 +893,7 @@
   }
 
   function renderFooter() {
+    if (state.method === "MATCH") { $("footer").innerHTML = esc(t("footMatch")) + importStatus(); return; }
     if (state.method === "IXDB") { $("footer").innerHTML = t("footIx", { date: esc(ixdbGenerated()) }) + importStatus(); return; }
     const m = METHODS[state.method];
     $("footer").innerHTML = t("footMdr", { db: m.dbName, dbDoi: m.dbDoi, extra: t(state.method === "XAFS" ? "citeXafs" : "citeHaxpes") }) + importStatus();
@@ -830,6 +921,314 @@
     }
   }
 
+  // ---- XANES 類似検索 ----
+  // 索引（tools/build_xanes_index.py）は元素・吸収端ごとに、規格化・平坦化した XANES を Ec−30〜Ec+70 eV の 0.5 eV 格子に載せたもの。
+  // DB 側は施設ごとに金属箔の半値エネルギーを基準値 eh にそろえてある。測定データも normalizeXanes
+  // （build_xanes_index.py の normalize_xanes と同じ手順）で規格化し、測定したリファレンスの半値エネルギーを eh に合わせて比べる。
+  const mt = { index: null, data: null, edge: "", crystal: "", scope: "", top: 10, sample: null, ref: null, useInFileRef: false,
+    cfg: { e: 0, mode: "col", y: 1, a: 1, b: 2 }, offset: "", results: null, sel: 0, view: "mu", sortBy: "total", err: "" };
+  const M_WIN = [-200, 400], M_E0 = 30;
+
+  function normalizeXanes(x0, y0, ec) {
+    const pts = x0.map((v, i) => [v, y0[i]]).filter(([v, w]) => v >= ec + M_WIN[0] && v <= ec + M_WIN[1] && Number.isFinite(w));
+    if (pts.length < 8) return null;
+    const x = pts.map(p => p[0]), y = pts.map(p => p[1]), n = x.length;
+    const ys = y.map((v, i) => (y[Math.max(0, i - 1)] + v + y[Math.min(n - 1, i + 1)]) / 3);
+    let i0 = -1, best = -Infinity;
+    for (let i = 1; i < n - 1; i++) {
+      if (Math.abs(x[i] - ec) > M_E0 || x[i + 1] === x[i - 1]) continue;
+      const d = (ys[i + 1] - ys[i - 1]) / (x[i + 1] - x[i - 1]);
+      if (d > best) { best = d; i0 = i; }
+    }
+    if (i0 < 0) return null;
+    const e0 = x[i0], dPre = Math.min(30, 0.35 * (e0 - x[0])), dPost = Math.min(50, 0.3 * (x[n - 1] - e0));
+    let pre = x.map((v, i) => i).filter(i => x[i] < e0 - dPre), post = x.map((v, i) => i).filter(i => x[i] > e0 + dPost);
+    if (pre.length < 3) pre = [0, 1, 2];
+    if (post.length < 3) post = [n - 3, n - 2, n - 1];
+    const order = x[post[post.length - 1]] - x[post[0]] > 200 ? 2 : 1;
+    const pp = polyfit(pre.map(i => x[i]), pre.map(i => y[i]), 1), qp = polyfit(post.map(i => x[i]), post.map(i => y[i]), order);
+    const step = polyval(qp, e0) - polyval(pp, e0);
+    if (!(step > 0)) return null;
+    const yn = x.map((v, i) => (y[i] - polyval(pp, v)) / step - (v >= e0 ? (polyval(qp, v) - polyval(pp, v) - step) / step : 0));
+    // 半値エネルギー（規格化 μ が 0.5 になるエネルギー）：リファレンスの位置合わせに使う
+    let eh = null;
+    for (let i = 1; i < n; i++) {
+      if (yn[i - 1] < 0.5 && yn[i] >= 0.5 && x[i] <= e0 + M_E0) {
+        eh = x[i - 1] + (0.5 - yn[i - 1]) / (yn[i] - yn[i - 1]) * (x[i] - x[i - 1]);
+        if (x[i] >= e0) break;
+      }
+    }
+    return { e0, eh, step, x, y: yn };
+  }
+  function onGrid(x, y, ec, grid) {
+    const out = [];
+    let j = 0;
+    for (let g = grid[0]; g <= grid[1] + 1e-9; g += grid[2]) {
+      const e = ec + g;
+      while (j < x.length - 2 && x[j + 1] < e) j++;
+      out.push(e >= x[0] && e <= x[x.length - 1] && x[j + 1] !== x[j] ? y[j] + (e - x[j]) / (x[j + 1] - x[j]) * (y[j + 1] - y[j]) : null);
+    }
+    return out;
+  }
+
+  // ファイルの読み取り：PF9809（.dat）または数値の表（2 列、Athena、XDI など）
+  function parseSpectrumFile(name, text) {
+    const lines = text.split(/\r?\n/);
+    if (/^\s*9809\b/.test(lines[0] || "")) {
+      const dm = /D=\s*([\d.]+)/.exec(text), im = lines.findIndex(l => /^\s*Mode\b/.test(l));
+      if (!dm || im < 0) return null;
+      const D = +dm[1], det = (lines[5] || "").slice(10, 40), modes = [0, ...lines[im].trim().split(/\s+/).slice(1).map(Number)];
+      const offs = [0, ...lines[im + 1].trim().split(/\s+/).slice(1).map(Number)];
+      const rows = lines.slice(im + 2).map(l => l.trim().split(/\s+/).map(Number)).filter(r => r.length >= modes.length && r.every(Number.isFinite));
+      const E = rows.map(r => 12398.42 / (2 * D * Math.sin((r[1] || r[0]) * Math.PI / 180)));
+      const ch = k => rows.map(r => r[k] - offs[k] * r[2]);
+      const idx = m => modes.map((v, k) => k >= 3 && m(v) ? k : -1).filter(k => k >= 0);
+      const i0 = idx(v => v === 1)[0], tr = idx(v => v === 2), fl = idx(v => v >= 3);
+      if (i0 == null) return null;
+      const I0 = ch(i0), ln = (a, b) => a.map((v, i) => v > 0 && b[i] > 0 ? Math.log(v / b[i]) : NaN);
+      const fluo = /fluo/i.test(det) && fl.length;
+      const y = fluo ? I0.map((v, i) => fl.reduce((s, k) => s + ch(k)[i], 0) / v) : tr.length ? ln(I0, ch(tr[0])) : null;
+      if (!y) return null;
+      return { name, kind: "pf", x: E, y, refY: !fluo && tr.length > 1 ? ln(ch(tr[0]), ch(tr[1])) : null };
+    }
+    let names = [];
+    const xdi = lines.map(l => /^#\s*Column\.(\d+):\s*(\S+)/.exec(l)).filter(Boolean);
+    if (xdi.length) xdi.forEach(m => names[+m[1] - 1] = m[2]);
+    const rows = [];
+    let lastComment = "";
+    for (const l of lines) {
+      if (/^\s*[#!;%]/.test(l)) { lastComment = l.replace(/^\s*[#!;%]+/, ""); continue; }
+      const r = l.trim().split(/[\s,;]+/).map(Number);
+      if (r.length >= 2 && r.every(Number.isFinite)) rows.push(r);
+      else if (!rows.length && /[A-Za-z]/.test(l)) lastComment = l;
+    }
+    if (rows.length < 8) return null;
+    const nc = Math.min(...rows.map(r => r.length));
+    if (!names.length) names = lastComment.trim().split(/[\s,;\t]+/).length === nc ? lastComment.trim().split(/[\s,;\t]+/) : [];
+    names = Array.from({ length: nc }, (_, i) => names[i] || `${i + 1}`);
+    const cols = names.map((_, i) => rows.map(r => r[i]));
+    if (Math.max(...cols[0]) < 100) cols[0] = cols[0].map(v => v * 1000);  // keV → eV
+    return { name, kind: "table", names, cols };
+  }
+  // 表の列の初期設定：μ の列があればそれ、I0 と It があれば ln(I0/It)、If と I0 があれば If/I0
+  function guessCols(names) {
+    const f = re => names.findIndex(n => re.test(n));
+    const mu = f(/^(mu|xmu|mutrans|mufluor|norm|flat|absorption|mu_?t)/i), i0 = f(/^i0/i), it = f(/^(itrans|it|i1)\b/i), ifl = f(/^(ifluor|if|fluor|pfy|tey)/i);
+    if (names.length === 2) return { e: 0, mode: "col", y: 1, a: 1, b: 1 };
+    if (mu > 0) return { e: 0, mode: "col", y: mu, a: 1, b: 2 };
+    if (i0 > 0 && it > 0) return { e: 0, mode: "ln", y: 1, a: i0, b: it };
+    if (i0 > 0 && ifl > 0) return { e: 0, mode: "ratio", y: 1, a: ifl, b: i0 };
+    return { e: 0, mode: "col", y: 1, a: 1, b: 2 };
+  }
+  function seriesOf(p) {
+    if (!p) return null;
+    if (p.kind === "pf") return { x: p.x, y: p.y };
+    const c = mt.cfg, A = p.cols[c.a], B = p.cols[c.b];
+    const y = c.mode === "ln" ? A.map((v, i) => v > 0 && B[i] > 0 ? Math.log(v / B[i]) : NaN)
+      : c.mode === "ratio" ? A.map((v, i) => B[i] ? v / B[i] : NaN) : p.cols[c.y];
+    const pts = p.cols[c.e].map((v, i) => [v, y[i]]).filter(q => Number.isFinite(q[0]) && Number.isFinite(q[1])).sort((u, v) => u[0] - v[0]);
+    return { x: pts.map(q => q[0]), y: pts.map(q => q[1]) };
+  }
+
+  async function selectMatchElement(sym) {
+    const edges = Object.keys(mt.index || {}).filter(k => k.startsWith(sym + "_")).map(k => k.split("_")[1]);
+    mt.edge = edges.includes(mt.edge) ? mt.edge : ["K", "L3", "L2", "L1"].find(e => edges.includes(e)) || "";
+    await loadMatchData();
+  }
+  async function loadMatchData() {
+    Object.assign(mt, { data: null, results: null, err: "" });
+    renderMatch();
+    if (!state.el || !mt.edge) return;
+    const want = `${state.el}_${mt.edge}`;
+    try {
+      const d = await (await fetch(`spectra/xanes/${want}.json`)).json();
+      if (`${state.el}_${mt.edge}` === want) mt.data = d;
+    } catch (e) { mt.err = e.message; }
+    renderMatch();
+  }
+  const srcLabel = it => it.db === "MDR" ? `${facShort(it.fac) || it.fac}${it.bl ? " " + it.bl : ""}` : dbName(it.db);
+  const inScope = it => (!mt.scope || (mt.scope.startsWith("MDR|") ? it.db === "MDR" && it.fac === mt.scope.slice(4) : it.db === mt.scope))
+    && (!mt.crystal || it.c === mt.crystal);
+  function currentOffset() {
+    if (mt.offset !== "" && Number.isFinite(+mt.offset)) return { o: +mt.offset, manual: true };
+    const d = mt.data;
+    const rs = mt.useInFileRef && mt.sample?.refY ? { x: mt.sample.x, y: mt.sample.refY } : seriesOf(mt.ref);
+    const nz = d && d.eh && rs ? normalizeXanes(rs.x, rs.y, d.ec) : null;
+    return nz && nz.eh ? { o: d.eh - nz.eh, u: nz.eh, d: d.eh } : { o: 0, none: true };
+  }
+
+  function rankOf(vals, higherBetter) {
+    const idx = vals.map((v, i) => i).sort((a, b) => higherBetter ? vals[b] - vals[a] : vals[a] - vals[b]);
+    const r = new Array(vals.length);
+    idx.forEach((i, k) => r[i] = k + 1);
+    return r;
+  }
+  function pearson(a, b) {
+    const n = a.length, ma = a.reduce((s, v) => s + v, 0) / n, mb = b.reduce((s, v) => s + v, 0) / n;
+    let sab = 0, saa = 0, sbb = 0;
+    for (let i = 0; i < n; i++) { const da = a[i] - ma, db = b[i] - mb; sab += da * db; saa += da * da; sbb += db * db; }
+    return saa && sbb ? sab / Math.sqrt(saa * sbb) : 0;
+  }
+  const ranks = a => rankOf(a, false);
+  const deriv = a => a.slice(1).map((v, i) => v - a[i]);
+  function metrics(u, v) {
+    const ia = u.map((x, i) => i).filter(i => u[i] != null && v[i] != null);
+    if (ia.length < u.length * 0.6) return null;
+    const a = ia.map(i => u[i]), b = ia.map(i => v[i]);
+    const dot = a.reduce((s, x, i) => s + x * b[i], 0), na = Math.hypot(...a), nb = Math.hypot(...b);
+    const pa = a.map(x => Math.max(0, x)), pb = b.map(x => Math.max(0, x));
+    return {
+      pearson: pearson(a, b), deriv: pearson(deriv(a), deriv(b)), cos: na && nb ? dot / (na * nb) : 0,
+      spear: pearson(ranks(a), ranks(b)),
+      rf: a.reduce((s, x, i) => s + (x - b[i]) ** 2, 0) / a.reduce((s, x) => s + x * x, 0),
+      ruz: pa.reduce((s, x, i) => s + Math.min(x, pb[i]), 0) / pa.reduce((s, x, i) => s + Math.max(x, pb[i]), 0),
+    };
+  }
+  const M_KEYS = [["pearson", "mPearson", true], ["deriv", "mDeriv", true], ["cos", "mCos", true], ["spear", "mSpear", true], ["rf", "mRf", false], ["ruz", "mRuz", true]];
+
+  function runMatch() {
+    const d = mt.data, s = seriesOf(mt.sample);
+    mt.results = null; mt.err = "";
+    if (!d || !s) return;
+    const off = currentOffset();
+    const nz = normalizeXanes(s.x.map(v => v + off.o), s.y, d.ec);
+    if (!nz) { mt.err = t("mNoEdge", { ec: d.ec }); return; }
+    const u = onGrid(nz.x, nz.y, d.ec, d.grid);
+    const rows = d.items.filter(inScope).map(it => ({ it, m: metrics(u, it.y) })).filter(r => r.m);
+    if (rows.length) {
+      const rk = M_KEYS.map(([k, , hb]) => rankOf(rows.map(r => r.m[k]), hb));
+      rows.forEach((r, i) => r.m.total = rk.reduce((s, x) => s + x[i], 0) / rk.length);
+    }
+    mt.results = { u, nz, off, rows };
+    mt.sel = 0;
+    sortResults();
+  }
+  function sortResults() {
+    if (!mt.results) return;
+    const hb = mt.sortBy === "total" ? false : M_KEYS.find(k => k[0] === mt.sortBy)[2];
+    mt.results.rows.sort((a, b) => hb ? b.m[mt.sortBy] - a.m[mt.sortBy] : a.m[mt.sortBy] - b.m[mt.sortBy]);
+  }
+
+  function readFile(input, cb) {
+    const f = input.files[0];
+    if (!f) return;
+    const fr = new FileReader();
+    fr.onload = () => cb(parseSpectrumFile(f.name, String(fr.result)) || { name: f.name, bad: true });
+    fr.readAsText(f);
+  }
+
+  function renderMatch() {
+    const box = $("matchPanel");
+    if (state.method !== "MATCH") return;
+    const d = mt.data;
+    const edges = Object.keys(mt.index || {}).filter(k => k.startsWith((state.el || "") + "_")).map(k => k.split("_")[1]);
+    const opt = (v, label, cur) => `<option value="${esc(v)}"${v === cur ? " selected" : ""}>${esc(label)}</option>`;
+    let h = `<h2>${esc(t("mTitle"))}</h2>`;
+    if (!state.el) { box.innerHTML = h + `<p class="status">${esc(t("mPick"))}</p>`; return; }
+    const crystals = d ? [...new Set(d.items.map(i => i.c).filter(Boolean))].sort() : [];
+    const scopes = d ? [...new Set(d.items.map(i => i.db === "MDR" ? `MDR|${i.fac}` : i.db))] : [];
+    h += `<div class="mform">
+      <div><label>${esc(t("mEdge"))}</label><select id="mEdge">${edges.map(e => opt(e, `${state.el} ${e} (${mt.index[`${state.el}_${e}`]})`, mt.edge)).join("")}</select></div>
+      <div><label>${esc(t("mScope"))}</label><select id="mScope">${opt("", t("mScopeAll"), mt.scope)}${scopes.map(v => opt(v, v.startsWith("MDR|") ? `MDR: ${facShort(v.slice(4)) || v.slice(4)}` : dbName(v), mt.scope)).join("")}</select></div>
+      <div><label>${esc(t("mCrystal"))}</label><select id="mCrystal">${opt("", t("mAny"), mt.crystal)}${crystals.map(c => opt(c, c, mt.crystal)).join("")}</select></div>
+      <div><label>${esc(t("mTop"))}</label><select id="mTop">${[5, 10, 20, 50].map(n => opt(String(n), String(n), String(mt.top))).join("")}</select></div>
+    </div>`;
+    if (mt.err && !mt.results) h += `<p class="status err">${esc(mt.err)}</p>`;
+    if (!d) { box.innerHTML = h + `<p class="status">${esc(t("loading"))}</p>`; bindMatch(); return; }
+    // 測定データ
+    const loaded = p => { if (!p) return ""; if (p.bad) return `<p class="status err">${esc(t("mParseFail", { name: p.name }))}</p>`;
+      const sr = seriesOf(p); return sr && sr.x.length ? `<p class="hint">${esc(t("mLoaded", { name: p.name, n: sr.x.length, lo: sr.x[0].toFixed(1), hi: sr.x[sr.x.length - 1].toFixed(1) }))}</p>` : ""; };
+    const colSel = (id, cur, names) => `<select id="${id}">${names.map((n, i) => opt(String(i), n, String(cur))).join("")}</select>`;
+    const p = mt.sample && !mt.sample.bad && mt.sample.kind === "table" ? mt.sample : null;
+    h += `<div class="mstep"><h3>${esc(t("mSample"))}</h3><p class="hint" style="margin:0 0 4px">${esc(t("mSampleHint"))}</p>
+      <input type="file" id="mSampleFile">${loaded(mt.sample)}
+      ${p ? `<div class="mcols">${esc(t("mCols"))} ${esc(t("mColE"))} ${colSel("mColE", mt.cfg.e, p.names)}
+        ${esc(t("mColY"))} <select id="mMode">${opt("col", t("mYcol"), mt.cfg.mode)}${opt("ln", t("mYln"), mt.cfg.mode)}${opt("ratio", t("mYratio"), mt.cfg.mode)}</select>
+        ${mt.cfg.mode === "col" ? colSel("mColY", mt.cfg.y, p.names) : `A ${colSel("mColA", mt.cfg.a, p.names)} B ${colSel("mColB", mt.cfg.b, p.names)}`}</div>` : ""}</div>`;
+    // リファレンス
+    const off = currentOffset();
+    h += `<div class="mstep"><h3>${esc(t("mRef"))}</h3><p class="hint" style="margin:0 0 4px">${esc(t("mRefHint"))}</p>
+      <div class="mform">
+        <div><label>${esc(t("mRefFile", { el: state.el }))}</label><input type="file" id="mRefFile">${loaded(mt.ref)}
+          ${mt.sample?.refY ? `<label style="margin-top:4px"><input type="checkbox" id="mInFile"${mt.useInFileRef ? " checked" : ""}> ${esc(t("mRefInFile"))}</label>` : ""}</div>
+        <div><label>${esc(t("mOffset"))}</label><input type="number" step="0.1" id="mOffset" value="${esc(mt.offset)}" placeholder="${off.none ? "0" : off.o.toFixed(2)}"></div>
+      </div>
+      <p class="hint" style="margin:0">${esc(d.eh ? t("mRefBase", { el: state.el, edge: mt.edge, eh: d.eh }) : t("mRefNoBase"))}</p>
+      <p class="hint" style="margin:0">${esc(off.manual ? "" : off.none ? t("mOffsetNone") : t("mOffsetCalc", { u: off.u.toFixed(2), d: off.d.toFixed(2), o: (off.o >= 0 ? "+" : "") + off.o.toFixed(2) }))}</p></div>`;
+    h += `<div class="btns"><button type="button" class="primary" id="mRun"${mt.sample && !mt.sample.bad ? "" : " disabled"}>${esc(t("mRun"))}</button></div>`;
+    h += resultsHtml();
+    h += `<details class="mnote"><summary>${esc(t("mHow"))}</summary>${t("mHowBody", { ec: d.ec })}</details>`;
+    box.innerHTML = h;
+    bindMatch();
+  }
+
+  function resultsHtml() {
+    const R = mt.results, d = mt.data;
+    if (!R) return "";
+    if (!R.rows.length) return `<p class="status">${esc(t("mNoCand"))}</p>`;
+    const rows = R.rows.slice(0, mt.top), fmt = (k, v) => k === "total" ? v.toFixed(1) : k === "rf" ? v.toFixed(4) : v.toFixed(3);
+    const th = (k, label) => `<th class="sort${mt.sortBy === k ? " sorted" : ""}" data-sort="${k}">${esc(t(label))}</th>`;
+    let h = `<div class="mstep"><h3>${esc(t("mResult", { n: R.rows.length, top: rows.length }))}</h3>
+      <p class="hint" style="margin:0 0 4px">${esc(t("mSortHint"))}</p>
+      <div class="list" style="max-height:40vh"><table class="mres"><thead><tr><th>${esc(t("mRank"))}</th><th>${esc(t("mName"))}</th><th>${esc(t("mSrc"))}</th>
+      ${th("total", "mTotal")}${M_KEYS.map(([k, l]) => th(k, l)).join("")}</tr></thead><tbody>
+      ${rows.map((r, i) => `<tr data-i="${i}" class="${i === mt.sel ? "on" : ""}"><td class="num">${i + 1}</td>
+        <td>${esc(lang === "ja" && r.it.ja ? r.it.ja : r.it.n)}${r.it.f ? ` <span class="hint">${esc(r.it.f)}</span>` : ""}</td>
+        <td>${esc(srcLabel(r.it))}${r.it.c ? ` ${esc(r.it.c)}` : ""}${r.it.cal ? "" : ` <span class="hint" title="${esc(t("mNoCalTip"))}">${esc(t("mNoCal"))}</span>`}</td>
+        <td class="num">${fmt("total", r.m.total)}</td>${M_KEYS.map(([k]) => `<td class="num">${fmt(k, r.m[k])}</td>`).join("")}</tr>`).join("")}
+      </tbody></table></div></div>`;
+    // 重ね描き
+    const c = rows[mt.sel] || rows[0];
+    const gx = [];
+    for (let g = d.grid[0]; g <= d.grid[1] + 1e-9; g += d.grid[2]) gx.push(d.ec + g);
+    const der = a => a.map((v, i) => i && v != null && a[i - 1] != null ? (v - a[i - 1]) / d.grid[2] : null);
+    const A = mt.view === "d" ? der(R.u) : R.u, B = mt.view === "d" ? der(c.it.y) : c.it.y;
+    const vals = [...A, ...B].filter(v => v != null);
+    let lo = Math.min(...vals), hi = Math.max(...vals);
+    const pad = (hi - lo || 1) * 0.06; lo -= pad; hi += pad;
+    const W = 640, H = 310, L = 74, Rr = 12, T = 22, Bm = 50, x0 = gx[0], x1 = gx[gx.length - 1];
+    const X = v => L + (v - x0) / (x1 - x0) * (W - L - Rr), Y = v => T + (hi - v) / (hi - lo || 1) * (H - T - Bm);
+    const path = a => { let s = "", pen = false; a.forEach((v, i) => { if (v == null) { pen = false; return; } s += `${pen ? "L" : "M"}${X(gx[i]).toFixed(1)},${Y(v).toFixed(1)}`; pen = true; }); return s; };
+    const fmtY = v => +v.toPrecision(3);
+    h += `<div class="plotbox" style="margin-top:8px"><div class="ctrl"><span class="seg">
+      <button type="button" data-mview="mu" class="${mt.view === "mu" ? "on" : ""}">${esc(t("mViewMu"))}</button>
+      <button type="button" data-mview="d" class="${mt.view === "d" ? "on" : ""}">${esc(t("mViewD"))}</button></span></div>
+      <svg viewBox="0 0 ${W} ${H}" role="img">
+      ${niceTicks(x0, x1, 6).map(v => `<line class="grid" x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${H - Bm}"/><text x="${X(v)}" y="${H - Bm + 4}" dy="1em" text-anchor="middle">${v}</text>`).join("")}
+      ${niceTicks(lo, hi, 5).map(v => `<line class="grid" x1="${L}" x2="${W - Rr}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${L - 5}" y="${Y(v)}" dy=".35em" text-anchor="end">${fmtY(v)}</text>`).join("")}
+      <line class="axis" x1="${L}" x2="${L}" y1="${T}" y2="${H - Bm}"/><line class="axis" x1="${L}" x2="${W - Rr}" y1="${H - Bm}" y2="${H - Bm}"/>
+      <path class="curve" d="${path(B)}"/><path class="curve2" d="${path(A)}"/>
+      <text x="${L + 6}" y="${T - 6}" style="fill:var(--warn)">━ ${esc(t("mYou"))}</text>
+      <text x="${L + 150}" y="${T - 6}" style="fill:var(--accent)">━ ${esc(lang === "ja" && c.it.ja ? c.it.ja : c.it.n)} (${esc(srcLabel(c.it))})</text>
+      <text x="${(L + W - Rr) / 2}" y="${H - 4}" text-anchor="middle">${esc(t("energy"))}</text>
+      <text transform="translate(4 ${(T + H - Bm) / 2}) rotate(-90)" dy="1em" text-anchor="middle">${esc(t(mt.view === "d" ? "mViewD" : "mViewMu"))}</text>
+      </svg><p class="hint">${esc(t("mE0", { e0: R.nz.e0.toFixed(2), step: +R.nz.step.toPrecision(3) }))}</p></div>`;
+    return h;
+  }
+
+  function bindMatch() {
+    const on = (id, ev, f) => { const e = $(id); if (e) e[ev] = f; };
+    on("mEdge", "onchange", e => { mt.edge = e.target.value; loadMatchData(); });
+    on("mScope", "onchange", e => { mt.scope = e.target.value; if (mt.results) runMatch(); renderMatch(); });
+    on("mCrystal", "onchange", e => { mt.crystal = e.target.value; if (mt.results) runMatch(); renderMatch(); });
+    on("mTop", "onchange", e => { mt.top = +e.target.value; renderMatch(); });
+    on("mSampleFile", "onchange", e => readFile(e.target, p => {
+      mt.sample = p; mt.results = null; mt.useInFileRef = !!p.refY && !mt.ref;
+      if (p.kind === "table") mt.cfg = guessCols(p.names);
+      renderMatch();
+    }));
+    on("mRefFile", "onchange", e => readFile(e.target, p => { mt.ref = p; mt.useInFileRef = false; if (mt.results) runMatch(); renderMatch(); }));
+    on("mInFile", "onchange", e => { mt.useInFileRef = e.target.checked; if (mt.results) runMatch(); renderMatch(); });
+    on("mOffset", "onchange", e => { mt.offset = e.target.value.trim(); if (mt.results) runMatch(); renderMatch(); });
+    ["mColE", "mColY", "mColA", "mColB"].forEach(id => on(id, "onchange", e => {
+      mt.cfg[{ mColE: "e", mColY: "y", mColA: "a", mColB: "b" }[id]] = +e.target.value; mt.results = null; renderMatch(); }));
+    on("mMode", "onchange", e => { mt.cfg.mode = e.target.value; mt.results = null; renderMatch(); });
+    on("mRun", "onclick", () => { runMatch(); renderMatch(); });
+    document.querySelectorAll("#matchPanel [data-sort]").forEach(b => b.onclick = () => { mt.sortBy = b.dataset.sort; sortResults(); mt.sel = 0; renderMatch(); });
+    document.querySelectorAll("#matchPanel tr[data-i]").forEach(tr => tr.onclick = () => { mt.sel = +tr.dataset.i; renderMatch(); });
+    document.querySelectorAll("#matchPanel [data-mview]").forEach(b => b.onclick = () => { mt.view = b.dataset.mview; renderMatch(); });
+  }
+
   // ---- 言語 ----
   function applyLang() {
     document.documentElement.lang = lang;
@@ -853,11 +1252,16 @@
   async function setMethod(m) {
     if (state.method === m) return;
     state.method = m; state.facility = ""; state.el = null; state.recs = []; closePlot();
+    document.querySelector("main").classList.toggle("match", m === "MATCH");
+    document.querySelector(".modebar").classList.toggle("match", m === "MATCH");
     document.querySelectorAll("#method button").forEach(x => x.classList.toggle("on", x.dataset.v === m));
     document.querySelectorAll(".xafs-only").forEach(x => x.classList.toggle("hide",
       state.method === "HAXPES" || (state.method === "IXDB" && !x.querySelector("#edge"))));
     ["edge", "crystal", "mtype"].forEach(id => $(id).value = "");
     fillFacility(); renderFooter(); setStatus("pickElement"); render();
+    if (state.method === "MATCH") {
+      try { mt.index = mt.index || await (await fetch("spectra/xanes/index.json")).json(); } catch { mt.index = {}; }
+    }
     if (state.method === "HAXPES" || state.method === "IXDB") {
       setStatus("loading");
       try { await (state.method === "HAXPES" ? loadHaxpes() : loadIxdb()); setStatus("pickElement"); renderFooter(); }

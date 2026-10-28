@@ -23,6 +23,7 @@ It searches public metadata (DOI records and a knowledge graph) and links direct
 - IXDB tab: a **Related** column gives per-material links (as on the MatVoc pages linked from the IXDB portal): MatVoc, Materials Project XAS simulation, COD crystal structures, and AtomWork.
 - MDR XAFS records (MDR tab, and MDR rows in the IXDB tab) and IXDB records from IHEP, LISA, XASLIB and CLS have a **Plot** button that shows the dataset's spectrum on the page: raw (μt = ln(I0/I), If/I0 or I/I0 as provided by each facility) or background-subtracted and normalized (simple pre-edge line / post-edge fit, edge step = 1), full range or XANES region. Datasets with several files (repeated scans, reference foil, TEY/PFY) can be switched.
 - MDR HAXPES records also have a **Plot** button: intensity vs. binding energy (high to low), with the regions of each dataset (wide, VB, core levels) selectable.
+- **XANES matching** tab: load your XAFS data (2-column text, Athena, XDI or PF9809 .dat) and a reference (e.g. metal foil) measured under the same conditions, choose the element and edge (and optionally the database/facility and mono crystal), and get the most similar database spectra in the XANES region, with an overlay plot. The energy is aligned with the reference; database spectra are aligned per facility using the half-step energy of the metal (foil). Six similarity metrics (Pearson, derivative Pearson, cosine, Spearman, R-factor, Ruzicka) and their mean rank are shown, with references to the papers in the page. Your files are processed only in the browser.
 - The page footer shows how many spectra have been imported for plotting per database and when; records not imported yet show "Plot (in preparation)".
 - Your selection is kept across tabs; download the MDR records as zip, save the list as CSV (DOI, URL), or copy citations.
 - A **Related resources** box (same as the IXDB portal) links to Materials Project, MDR HAXPES DB, COD, CPDDB and AtomWork; if the selected element has HAXPES data, a button opens it in the MDR (HAXPES) tab.
@@ -44,6 +45,7 @@ Spectral data → fetched directly from each database (MDR zip, database pages)
 Plots       → docs/spectra/<MDR ID>.json, built by tools/build_spectra.py from each MDR XAFS DB zip
               docs/spectra/haxpes/<MDR ID>.json, built by tools/build_haxpes_spectra.py (*_sp.csv of each dataset)
               docs/spectra/{lisa,xaslib,cls}/<ID>.json, built by tools/build_overseas_spectra.py
+              docs/spectra/xanes/<El>_<edge>.json: normalized XANES on a common grid for matching, built by tools/build_xanes_index.py
               docs/spectra/available.json: imported IDs, totals and import dates (written by each build script)
               IHEP: fetched live from its API (CORS allowed)
 ```
@@ -80,6 +82,7 @@ Not plotted: FAME (SSHADE) requires a login to export data. ESRF ID21 data are o
 - **Update the IXDB index:** `python tools/build_ixdb_index.py --out docs/ixdb_index.js` (Python 3.9+, no extra packages). The first run fetches about 1,200 MatVoc pages one at a time to respect its rate limit (~1 hour) and caches them in `cache/matvoc.json`; later runs reuse the cache. Use `--no-matvoc` to skip.
 - **Update the spectra for plotting:** `python tools/build_spectra.py --out docs/spectra` (needs PyYAML). It downloads the zip of each of the ~2,265 MDR XAFS DB datasets (several hundred MB in total; a few hours, as MDR often answers slowly or with 504) and skips datasets already in `docs/spectra`, so it can be re-run to fill in failures or new datasets.
 - **Update the overseas spectra:** `python tools/build_overseas_spectra.py --index docs/ixdb_index.js --out docs/spectra` (after updating the IXDB index; ~1,100 spectra from LISA, XASLIB and CLS; skips existing files).
+- **Update the XANES matching index:** `python tools/build_xanes_index.py --spectra docs/spectra --index docs/ixdb_index.js` (needs `xraydb`; run after the spectra are updated; reads local files only, ~2 min).
 - **Update the HAXPES spectra:** `python tools/build_haxpes_spectra.py --out docs/spectra` (37 datasets, one at a time).
 
 ## Limitations

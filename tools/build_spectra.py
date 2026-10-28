@@ -266,7 +266,7 @@ def write_manifest(root, totals=None):
     for db, n in (totals or {}).items():
         info[db] = {"total": n, "updated": time.strftime("%Y-%m-%d")}
     out = {}
-    for db, d in [("MDR", root)] + [(x.name.upper(), x) for x in sorted(root.iterdir()) if x.is_dir()]:
+    for db, d in [("MDR", root)] + [(x.name.upper(), x) for x in sorted(root.iterdir()) if x.is_dir() and x.name != "xanes"]:
         ids = []
         for f in sorted(d.glob("*.json")):
             if f.name == "available.json":
