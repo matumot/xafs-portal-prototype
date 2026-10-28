@@ -82,6 +82,7 @@ Not plotted: FAME (SSHADE) requires a login to export data. ESRF ID21 data are o
 ## Deploy and update
 
 - **GitHub Pages:** source = `main` branch, `/docs` folder.
+- **Size:** with all spectra imported, `docs/` is about 60 MB (largest file ~0.3 MB), well within GitHub's limits (repository ideally < 1 GB, files < 100 MB, Pages site < 1 GB).
 - **Run locally:** `python -m http.server 8000 --directory docs`, then open http://localhost:8000
 - **Update the IXDB index:** `python tools/build_ixdb_index.py --out docs/ixdb_index.js` (Python 3.9+, no extra packages). The first run fetches about 1,200 MatVoc pages one at a time to respect its rate limit (~1 hour) and caches them in `cache/matvoc.json`; later runs reuse the cache. Use `--no-matvoc` to skip.
 - **Update the spectra for plotting:** `python tools/build_spectra.py --out docs/spectra` (needs PyYAML). It downloads the zip of each of the ~2,265 MDR XAFS DB datasets (several hundred MB in total; a few hours, as MDR often answers slowly or with 504) and skips datasets already in `docs/spectra`, so it can be re-run to fill in failures or new datasets.
