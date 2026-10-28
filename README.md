@@ -80,7 +80,7 @@ Not plotted: FAME (SSHADE) requires a login to export data. ESRF ID21 data are o
 ## Limitations
 
 - MDR responds slowly: opening a DOI or starting a zip download can take 30 s to 1 min.
-- Plots are only available for spectra imported so far (prototype): about 1,030 of the 2,265 MDR XAFS DB datasets (mostly SPring-8) and 598 of the 693 CLS spectra (the others return 404 from CLS); LISA and XASLIB are complete. Other records show "not imported yet". Re-run the build scripts to fill in the rest.
+- Plots are only available for spectra imported so far (prototype): part of the 2,265 MDR XAFS DB datasets (import in progress) and 675 of the 693 CLS spectra (the other 18 are no longer in CLS); LISA and XASLIB are complete. Other records show "not imported yet". Re-run the build scripts to fill in the rest.
 - Element highlighting in the MDR tabs reflects registrations as of 2026-10-22; other elements can still be searched.
 - MatVoc names and links reflect the time the index was built; materials without a MatVoc entry (or without formula/links there) show the record title only.
 - Prototype: information shown is based on the metadata registered in each database.

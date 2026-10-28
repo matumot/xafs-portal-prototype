@@ -22,6 +22,7 @@ import json
 import math
 import re
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -37,8 +38,8 @@ def get(url, data=None, tries=4):
             req = urllib.request.Request(url, data=data, headers={**UA, **({"Content-Type": "application/json"} if data else {})})
             with urllib.request.urlopen(req, timeout=120) as r:
                 return r.read().decode("utf-8", "replace")
-        except Exception:
-            if i == tries - 1:
+        except Exception as e:
+            if i == tries - 1 or getattr(e, "code", 0) == 404:  # 404 は再試行しても変わらない
                 raise
             time.sleep(5 * (i + 1))
 
@@ -74,7 +75,11 @@ def xdi_series(name, s):
     for c, kind in (("mutrans", "mu"), ("mufluor", "fl"), ("mutey", "ey")):
         if c in cols:
             out.append((name, kind, E, cols[c]))
-    i0 = cols.get("i0")
+    # 列名が "I0_eh2"・"I1_eh2" のような生データ（LISA の一部）は、値の入っている最初の I0・I1 を使う
+    pick = lambda pat: next((v for k, v in cols.items() if re.match(pat, k) and any(v)), None)  # noqa: E731
+    i0 = cols.get("i0") or pick(r"i0_")
+    if "itrans" not in cols and i0 and pick(r"i1_"):
+        cols["itrans"] = pick(r"i1_")
     if not out and i0:
         if "itrans" in cols:
             out.append((name, "mu", E, log_ratio(i0, cols["itrans"])))
@@ -108,9 +113,23 @@ def cls(rec):
     # サイトでスペクトルをクリックしたときと同じ呼び出し（化合物名・"<元素>_id<ID>"・元素）。
     # 検索 API (/search) は化合物の 1 件目を返すので使わない
     wid, el = rec["wid"], rec["el"]
+    sid = f"{el}_id{wid}"
     name = re.sub(rf"_{re.escape(wid)}$", "", rec["title"])
-    body = json.dumps({"name": name, "id": f"{el}_id{wid}", "element": el}).encode()
-    sp = json.loads(get("https://xasdb.lightsource.ca/xasgetcompounds", body)).get("spectrum") or {}
+    fetch = lambda n: json.loads(get("https://xasdb.lightsource.ca/xasgetcompounds",  # noqa: E731
+                                     json.dumps({"name": n, "id": sid, "element": el}).encode())).get("spectrum") or {}
+    try:
+        sp = fetch(name)
+    except urllib.error.HTTPError as e:
+        # CLS 側で化合物名の表記が変わったもの（"Vanadium foil" → "Vanadium Foil" など）は 404 になるので、
+        # ID で検索して今の化合物名を引き直す
+        if e.code != 404:
+            raise
+        d = json.loads(get("https://xasdb.lightsource.ca/search", json.dumps({"search": wid}).encode()))
+        cmds = d.get("cmds", []) if isinstance(d, dict) else []
+        cur = next((c["compound"] for c in cmds if sid in c.get("sids", [])), None)
+        if not cur:
+            raise ValueError(f"CLS has no spectrum {sid}") from None
+        sp = fetch(cur)
     if not (sp.get("title") or "").endswith("_id" + wid):
         raise ValueError(f"CLS returned {sp.get('title')} for {wid}")
     h = sp.get("header", {})
