@@ -11,7 +11,9 @@
 施設・ビームラインごとにエネルギーの校正基準が違う（Fe 箔の E0 が SPring-8 と海外 DB で約 5 eV 違うなど）ので、
 DB・施設・分光結晶ごとに、その元素の金属（箔）の「半値エネルギー」（規格化 μ が 0.5 になるエネルギー）の中央値が、
 全体の基準値 eh（各施設の中央値の中央値）になるようにずらしてから格子に載せる
-（各スペクトルの sh：ずらした量、cal：補正できたか。金属のスペクトルがない組み合わせは補正なし）。
+（各スペクトルの sh：ずらした量、cal："fac"＝施設の代表値で補正、"ref"＝同時測定のリファレンスで 1 件ずつ補正、""＝補正なし）。
+同時測定のリファレンスがあるものは、同じ施設でも測定ごとに E0 が動くことがあるので、そのリファレンスで 1 件ずつ合わせる。
+施設・分光結晶ごとの代表的な補正量は src に入れ、ページでリファレンスのない測定データの初期値に使う。
 金属は前縁に肩があり一次微分の最大の位置が安定しない（同じ Ni 箔でも 13 eV 違う例がある）ので、位置合わせには半値エネルギーを使う。
 ページでは、利用者が読み込んだリファレンス（金属箔）の半値エネルギーを eh に合わせる。
 
@@ -183,7 +185,10 @@ def main():
         if main_s:
             nz = normalize_xanes(main_s["x"], main_s["y"], ec)
             if nz:
-                g["items"].append({**base, "e0": nz[0], "_x": nz[1], "_y": nz[2], "_eh": nz[3]})
+                # 同時測定のリファレンス（あいち SR の I2、北大の _ref、LISA・CLS・XASLIB の murefer など）があれば、その半値エネルギー
+                ref_s = next((x for x in series if x["t"] == "ref"), None)
+                rz = normalize_xanes(ref_s["x"], ref_s["y"], ec) if ref_s else None
+                g["items"].append({**base, "e0": nz[0], "_x": nz[1], "_y": nz[2], "_eh": nz[3], "_rh": rz[3] if rz else None})
 
     out = spectra / "xanes"
     out.mkdir(exist_ok=True)
@@ -201,13 +206,24 @@ def main():
         src_eh = {k: med(v) for k, v in foils.items()}
         g["eh"] = round(med(list(src_eh.values())), 2) if src_eh else None
         for it in g["items"]:
-            sh = g["eh"] - src_eh[src(it)] if src(it) in src_eh else 0.0
+            # 1) 同時測定のリファレンスがあり、その施設の金属（なければ基準値）から 15 eV 以内なら、そのリファレンスで 1 件ずつ合わせる
+            #    （同じ施設でも測定ごとに E0 が動くことがあるため）
+            # 2) なければ施設・分光結晶ごとの代表値（金属の半値エネルギーの中央値）で合わせる  3) どちらもなければ補正なし
+            rh = it.pop("_rh")
+            if rh and g["eh"] and abs(rh - src_eh.get(src(it), g["eh"])) < 15:
+                sh, cal = g["eh"] - rh, "ref"
+            elif src(it) in src_eh:
+                sh, cal = g["eh"] - src_eh[src(it)], "fac"
+            else:
+                sh, cal = 0.0, ""
             it.pop("_eh")
-            it.update({"sh": round(sh, 2), "cal": src(it) in src_eh, "e0": round(it["e0"] + sh, 2),
+            it.update({"sh": round(sh, 2), "cal": cal, "e0": round(it["e0"] + sh, 2),
                        "y": on_grid([v + sh for v in it.pop("_x")], it.pop("_y"), g["ec"])})
+        # 施設・分光結晶ごとの代表的な補正量（ページで、リファレンスのない測定データの初期値に使う）
+        g["src"] = {"|".join(k): round(g["eh"] - v, 2) for k, v in sorted(src_eh.items())}
         name = f"{el}_{edge}"
         payload = {"el": el, "edge": edge, "ec": g["ec"], "eh": g["eh"], "grid": [GRID_LO, GRID_HI, GRID_STEP],
-                   "items": g["items"]}
+                   "src": g.get("src", {}), "items": g["items"]}
         (out / f"{name}.json").write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
         summary[name] = len(g["items"])
     (out / "index.json").write_text(json.dumps(summary, separators=(",", ":")), encoding="utf-8")
