@@ -148,7 +148,7 @@
   <div lang="ja">
     <p>一覧の「データ」列の <span class="k">プロット</span> を押すと、その場でスペクトルを表示します（広い画面では周期表の下、狭い画面では一覧の上）。表示中の行は色が付きます。</p>
     <ul>
-      <li><b>生データ／バックグラウンド除去・規格化</b>：生データでは、差し引く前縁・後縁の線（破線）と E0（一次微分の最大、赤の点線）も重ねます。規格化は簡易処理です。解析には Athena などで処理し直してください。</li>
+      <li><b>生データ／バックグラウンド除去・規格化</b>：生データでは、差し引く前縁・後縁の線（破線）と E0（一次微分の最大、赤の点線）も重ねます。規格化は簡易処理です。解析には Athena などで処理し直してください。1 本のスペクトルに複数の吸収端（L2 と L1、合金の別の元素など）が入っているときは、記録の吸収端で規格化し、前縁・後縁の線はほかの吸収端にかからない範囲で引きます。<b>吸収端</b> のボタンで切り替えられます。</li>
       <li><b>全範囲／XANES 付近</b>：吸収端の前後（E0−30〜+70 eV）を拡大します。</li>
       <li><b>ファイル</b>：繰り返し測定・リファレンス（箔）・TEY／PFY など複数のファイルがあるデータは切り替えられます。HAXPES は「領域」（wide・VB・各内殻）を切り替えます（横軸は結合エネルギーで右ほど小さい）。</li>
       <li><span class="green">緑の破線</span>：文献値です。XAFS は NIST X-ray Transition Energies（SRD 128）の吸収端エネルギー（<b>金属の値</b>。化合物では化学シフトの分だけ高エネルギー側にずれます）で、このデータの E0 との差も表示します。HAXPES は NIST XPS Database（SRD 20）の推奨値（ない準位は Elam らの表）の結合エネルギーです。</li>
@@ -159,7 +159,7 @@
   <div lang="en">
     <p>Press <span class="k">Plot</span> in the "Data" column to show the spectrum (under the periodic table on wide screens, above the list on narrow ones). The plotted row is highlighted.</p>
     <ul>
-      <li><b>Raw / Background-subtracted, normalized</b>: the raw view also shows the pre- and post-edge lines (dashed) and E0 (maximum of the first derivative, red dotted). Normalization is simple; use Athena or similar for analysis.</li>
+      <li><b>Raw / Background-subtracted, normalized</b>: the raw view also shows the pre- and post-edge lines (dashed) and E0 (maximum of the first derivative, red dotted). Normalization is simple; use Athena or similar for analysis. When one spectrum spans several edges (L2 and L1, another element in an alloy, etc.), it is normalized at the record's edge and the pre- and post-edge lines avoid the other edges; switch with the <b>Edge</b> buttons.</li>
       <li><b>Full range / XANES region</b>: zooms to E0−30 to +70 eV.</li>
       <li><b>File</b>: switch between files of a dataset (repeated scans, reference foil, TEY/PFY). For HAXPES, switch the <b>region</b> (wide, VB, core levels); the axis is binding energy, decreasing to the right.</li>
       <li><span class="green">Green dashed lines</span>: reference values. XAFS: edge energy from NIST X-ray Transition Energies (SRD 128) — the value for the <b>metal</b>; compounds shift to higher energy by the chemical shift — with the difference from the data's E0. HAXPES: binding energies from the NIST XPS Database (SRD 20) recommended values (Elam et al. for levels without one).</li>

@@ -318,6 +318,7 @@
       refXps: "緑の破線：結合エネルギーの文献値（NIST XPS Database, SRD 20 の推奨値）",
       refXpsMixed: "緑の破線：結合エネルギーの文献値（NIST XPS Database, SRD 20 の推奨値。推奨値のない準位は Elam et al. の表〔xraydb〕）",
       normInfo: "E0 = {e0} eV（一次微分の最大）、edge step = {step}",
+      edgeSel: "吸収端", edgeBound: "範囲内にほかの吸収端があるため、前縁・後縁の近似はその吸収端にかからない範囲で行っています（{lo}〜{hi} eV）",
       normNote: "前縁を直線、吸収端より上を{post}で近似して差し引き、edge step が 1 になるよう規格化した簡易処理です。解析には Athena などで改めて処理してください。",
       postLin: "直線", postQuad: "2 次式", stepBad: "edge step が求められないため規格化できません。",
       plotSrc: "MDR XAFS DB の各データセット（{src}）から取り出したデータです（表示用に間引きあり）。",
@@ -418,6 +419,7 @@
       refXps: "Green dashed lines: reference binding energies (NIST XPS Database, SRD 20 recommended values)",
       refXpsMixed: "Green dashed lines: reference binding energies (NIST XPS Database, SRD 20 recommended values; levels without one from Elam et al. via xraydb)",
       normInfo: "E0 = {e0} eV (maximum of the first derivative), edge step = {step}",
+      edgeSel: "Edge", edgeBound: "Another edge lies in the range, so the pre- and post-edge lines are fitted only where it does not interfere ({lo}–{hi} eV)",
       normNote: "Simple processing: a line below the edge and a {post} above it are subtracted and the edge step is scaled to 1. Use Athena or similar for analysis.",
       postLin: "line", postQuad: "quadratic", stepBad: "Cannot normalize because the edge step could not be determined.",
       plotSrc: "Data taken from each dataset of MDR XAFS DB ({src}), thinned out for display.",
@@ -725,7 +727,7 @@
   function linksHtml(r) {
     const key = plotKey(r);
     const plot = !key ? "" : plotReady(key)
-      ? `<button type="button" class="linkbtn" data-plot="${esc(key)}" title="${esc(t("plotTip"))}">${esc(t("plot"))}</button>`
+      ? `<button type="button" class="linkbtn" data-plot="${esc(key)}" data-plot-edge="${esc(r.edge || "")}" title="${esc(t("plotTip"))}">${esc(t("plot"))}</button>`
       : `<span class="pending" title="${esc(t("plotMissing"))}">${esc(t("plotPending"))}</span>`;
     if (r.method === "IXDB" && r.db !== "MDR") return `<a href="${esc(r.page)}" target="_blank" rel="noopener">${esc(t("openIn", { db: r.db }))}</a>${plot}`;
     const doi = r.realDoi ?? r.doi;
@@ -783,10 +785,13 @@
     const kind = /fluor/i.test(d.measurement_mode || "") ? "fl" : "mu";
     return { src: "IHEP", live: true, s: x.length > 5 && x.length === y.length ? [{ n: d.file_name || id, t: kind, x, y }] : [] };
   }
-  const plot = { rec: null, key: "", data: null, idx: 0, view: "raw", range: "all", err: "", big: false };
-  async function openPlot(key) {
-    const r = [...state.recs, ...state.cart.values()].find(x => plotKey(x) === key);
-    Object.assign(plot, { rec: r, key, data: null, idx: 0, err: "" });
+  // edge：表示中のスペクトルが複数の吸収端にまたがるとき、規格化に使う吸収端（空なら記録の吸収端）
+  const plot = { rec: null, key: "", data: null, idx: 0, view: "raw", range: "all", err: "", big: false, edge: "" };
+  // 同じスペクトルが吸収端ごとに別の記録になっていることがあるので、押した行の吸収端の記録を選ぶ
+  async function openPlot(key, edge) {
+    const all = [...state.recs, ...state.cart.values()];
+    const r = all.find(x => plotKey(x) === key && x.edge === edge) || all.find(x => plotKey(x) === key);
+    Object.assign(plot, { rec: r, key, data: null, idx: 0, err: "", edge: "" });
     renderPlot(); markPlotRow();
     $("plot").scrollIntoView({ block: "nearest", behavior: "smooth" });
     try {
@@ -804,10 +809,11 @@
     if (!refE) return [];
     const out = [];
     if (!xps) {
+      // 記録の元素の吸収端（範囲内に複数あればすべて。どの段差がどの吸収端か分かるように）
       const m = /^([A-Z][a-z]?) (K|L1|L2|L3)-edge$/.exec(rec?.edge || "");
-      const e = m && refE.xafs?.[m[1]]?.[m[2]];
       // NIST の吸収端は金属（単体）の値。化合物は化学シフトでずれるので、ラベルに「（金属）」と付ける
-      if (e) out.push({ v: e.v, label: `${m[1]} ${m[2]}${t("refMetal")}`, src: e.src, el: m[1], edge: m[2] });
+      if (m) Object.entries(refE.xafs?.[m[1]] || {}).forEach(([edge, e]) =>
+        out.push({ v: e.v, label: `${m[1]} ${edge}${t("refMetal")}`, src: e.src, el: m[1], edge }));
     } else {
       const m = /^([A-Z][a-z]?) (\d[spdf](?: \d[spdf])*)/.exec(s.n);  // "Pt 5s 4f 5p" のように複数の準位を含む領域もある
       const add = (el, keep) => Object.entries(refE.xps?.[el] || {}).filter(([o, e]) => keep(o, e))
@@ -858,29 +864,51 @@
       !!plot.key && [...tr.querySelectorAll("[data-plot]")].some(b => b.dataset.plot === plot.key)));
   }
   // 一覧と選択中リストの両方にボタンがあるので、まとめて受ける
-  document.addEventListener("click", e => { const b = e.target.closest("[data-plot]"); if (b) openPlot(b.dataset.plot); });
+  document.addEventListener("click", e => { const b = e.target.closest("[data-plot]"); if (b) openPlot(b.dataset.plot, b.dataset.plotEdge); });
 
-  // 簡易の前縁・後縁処理（Athena の考え方に近いもの）：E0 は平滑化した一次微分の最大
-  function normalize(x, y) {
+  // 測定範囲にほかの吸収端（同じ元素の L2・L1、合金の別の元素など）があると、前縁・後縁の近似がその段差を拾ってしまう。
+  // E0 から 60 eV より外で、E0 の段差の 3 割を超える段差が始まる位置を探し、近似に使う範囲 [lo, hi] をそこまでにする
+  // （段差 = 前後 5〜25 eV の平均の差。EXAFS の振動やグリッチは平均でならされる）
+  function edgeBounds(x, ys, e0) {
+    const mean = (a, b) => { let s = 0, k = 0; for (let i = 0; i < x.length; i++) if (x[i] >= a && x[i] <= b) { s += ys[i]; k++; } return k >= 2 ? s / k : NaN; };
+    const jump = e => mean(e + 5, e + 25) - mean(e - 25, e - 5), j0 = jump(e0);
+    let lo = x[0], hi = x[x.length - 1];
+    if (!(j0 > 0)) return { lo, hi, cut: false };
+    const up = x.findIndex(v => v > e0 + 60 && jump(v) > 0.3 * j0);
+    if (up >= 0) hi = x[up];
+    for (let i = x.length - 1; i >= 0; i--) if (x[i] < e0 - 60 && jump(x[i]) > 0.3 * j0) { lo = x[i] + 30; break; }  // 下の吸収端の立ち上がりを避ける
+    return { lo, hi, cut: lo > x[0] || hi < x[x.length - 1] };
+  }
+  // 簡易の前縁・後縁処理（Athena の考え方に近いもの）：E0 は平滑化した一次微分の最大。
+  // eRef（記録の吸収端の文献値）があればその近く（化学シフトや施設の校正のずれを見込んで ±30 eV、高エネルギーでは広げる）で探す。
+  // IXDB は複数の吸収端にまたがる 1 本のスペクトルを吸収端ごとの記録にしているので、記録の吸収端で規格化する
+  function normalize(x, y, eRef) {
     const n = x.length;
     if (n < 8) return null;
     const ys = y.map((v, i) => (y[Math.max(0, i - 1)] + v + y[Math.min(n - 1, i + 1)]) / 3);
-    let i0 = 1, best = -Infinity;
-    for (let i = 1; i < n - 1; i++) {
-      const d = (ys[i + 1] - ys[i - 1]) / (x[i + 1] - x[i - 1]);
-      if (d > best) { best = d; i0 = i; }
-    }
-    const e0 = x[i0];
-    const dPre = Math.min(30, 0.35 * (e0 - x[0])), dPost = Math.min(50, 0.3 * (x[n - 1] - e0));
+    const win = eRef > x[0] && eRef < x[n - 1] ? Math.max(30, 0.0015 * eRef) : Infinity;
+    const findE0 = w => {
+      let i0 = -1, best = -Infinity;
+      for (let i = 1; i < n - 1; i++) {
+        if (w < Infinity && Math.abs(x[i] - eRef) > w) continue;
+        const d = (ys[i + 1] - ys[i - 1]) / (x[i + 1] - x[i - 1]);
+        if (d > best) { best = d; i0 = i; }
+      }
+      return i0;
+    };
+    let i0 = findE0(win);
+    if (i0 < 0) i0 = findE0(Infinity);
+    const e0 = x[i0], bd = edgeBounds(x, ys, e0);
+    const dPre = Math.min(30, 0.35 * (e0 - bd.lo)), dPost = Math.min(50, 0.3 * (bd.hi - e0));
     const sel = f => { const idx = x.map((v, i) => i).filter(i => f(x[i])); return [idx.map(i => x[i]), idx.map(i => y[i])]; };
-    let [px, py] = sel(v => v < e0 - dPre);
+    let [px, py] = sel(v => v >= bd.lo && v < e0 - dPre);
     if (px.length < 3) [px, py] = [x.slice(0, 3), y.slice(0, 3)];
-    let [qx, qy] = sel(v => v > e0 + dPost);
+    let [qx, qy] = sel(v => v > e0 + dPost && v <= bd.hi);
     if (qx.length < 3) [qx, qy] = [x.slice(-3), y.slice(-3)];
     const order = qx[qx.length - 1] - qx[0] > 200 ? 2 : 1;
     const pre = polyfit(px, py, 1), post = polyfit(qx, qy, order);
     const step = polyval(post, e0) - polyval(pre, e0);
-    return { e0, pre, post, order, step, y: step > 0 ? y.map((v, i) => (v - polyval(pre, x[i])) / step) : null };
+    return { e0, pre, post, order, step, bd, y: step > 0 ? y.map((v, i) => (v - polyval(pre, x[i])) / step) : null };
   }
   function polyfit(x, y, order) {
     // 最小二乗（正規方程式）。数値の安定のため x を平均からの差にする
@@ -924,6 +952,7 @@
     $("plotBig").onclick = () => { plot.big = !plot.big; renderPlot(); };
     box.querySelectorAll("[data-view]").forEach(b => b.onclick = () => { plot.view = b.dataset.view; renderPlot(); });
     box.querySelectorAll("[data-range]").forEach(b => b.onclick = () => { plot.range = b.dataset.range; renderPlot(); });
+    box.querySelectorAll("[data-pedge]").forEach(b => b.onclick = () => { plot.edge = b.dataset.pedge; renderPlot(); });
     if ($("plotSeries")) $("plotSeries").onchange = e => { plot.idx = +e.target.value; renderPlot(); };
   }
 
@@ -931,10 +960,13 @@
     const S = plot.data.s, s = S[Math.min(plot.idx, S.length - 1)];
     // 施設で規格化済みのデータ（立命館の .tey など）と HAXPES はそのまま表示する。HAXPES は横軸が結合エネルギー（右から左へ増える）
     const xps = plot.data.axis === "be", facNorm = s.t === "norm" || xps;
-    const nz = facNorm ? null : normalize(s.x, s.y);
+    let x0 = Math.min(s.x[0], s.x[s.x.length - 1]), x1 = Math.max(s.x[0], s.x[s.x.length - 1]);
+    // 範囲内にある記録の元素の吸収端（低い順）。2 つ以上なら切り替えられるようにする
+    const inRange = xps ? [] : refMarkers(plot.rec, s, xps, x0, x1).sort((a, b) => a.v - b.v);
+    const edgeRef = inRange.find(r => r.edge === plot.edge) || inRange.find(r => plot.rec.edge === `${r.el} ${r.edge}-edge`);
+    const nz = facNorm ? null : normalize(s.x, s.y, edgeRef?.v);
     const isNorm = !facNorm && plot.view === "norm" && nz && nz.y;
     const ys = isNorm ? nz.y : s.y;
-    let x0 = Math.min(s.x[0], s.x[s.x.length - 1]), x1 = Math.max(s.x[0], s.x[s.x.length - 1]);
     if (plot.range === "xanes" && nz) { x0 = Math.max(x0, nz.e0 - 30); x1 = Math.min(x1, nz.e0 + 70); }
     const idx = s.x.map((v, i) => i).filter(i => s.x[i] >= x0 && s.x[i] <= x1);
     let lo = Math.min(...idx.map(i => ys[i])), hi = Math.max(...idx.map(i => ys[i]));
@@ -955,7 +987,7 @@
       ${niceTicks(lo, hi, 5).map(v => `<line class="grid" x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${L - 5}" y="${Y(v)}" dy=".35em" text-anchor="end">${fmtY(v)}</text>`).join("")}
       <line class="axis" x1="${L}" x2="${L}" y1="${T}" y2="${H - B}"/><line class="axis" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/>
       <g clip-path="url(#pc)">
-        ${showFit ? `<path class="fit" d="${fit(nz.pre, x0, nz.e0 + 20)}"/><path class="fit" d="${fit(nz.post, nz.e0 - 20, x1)}"/>` : ""}
+        ${showFit ? `<path class="fit" d="${fit(nz.pre, Math.max(x0, nz.bd.lo), nz.e0 + 20)}"/><path class="fit" d="${fit(nz.post, nz.e0 - 20, Math.min(x1, nz.bd.hi))}"/>` : ""}
         ${nz && nz.e0 >= x0 && nz.e0 <= x1 ? `<line class="e0" x1="${X(nz.e0)}" x2="${X(nz.e0)}" y1="${T}" y2="${H - B}"/>` : ""}
         ${refs.map((r, k) => `<line class="refline" x1="${X(r.v)}" x2="${X(r.v)}" y1="${T}" y2="${H - B}"><title>${esc(r.label)} ${r.v} eV</title></line>`).join("")}
         <path class="curve" d="${line(idx.map(i => [s.x[i], ys[i]]))}"/>
@@ -971,13 +1003,17 @@
         : `<span class="hint" style="margin:0">${esc(s.n)}</span>`}
       ${facNorm ? "" : seg("view", isNorm ? "norm" : "raw", [["raw", "viewRaw"], ["norm", "viewNorm", !(nz && nz.y)]])}
       ${xps ? "" : seg("range", nz ? plot.range : "all", [["all", "rangeAll"], ["xanes", "rangeXanes", !nz]])}
+      ${!facNorm && inRange.length > 1 ? `<label>${esc(t("edgeSel"))} <span class="seg">${inRange.map(r =>
+        `<button type="button" data-pedge="${esc(r.edge)}" class="${r === edgeRef ? "on" : ""}">${esc(r.edge)}</button>`).join("")}</span></label>` : ""}
     </div>`;
     const info = [t("src" + s.t)];
     if (nz) info.push(nz.y ? t("normInfo", { e0: nz.e0.toFixed(1), step: +nz.step.toPrecision(3) }) : t("stepBad"));
-    // 文献値との比較
+    if (nz?.y && nz.bd.cut) info.push(t("edgeBound", { lo: Math.round(nz.bd.lo), hi: Math.round(nz.bd.hi) }));
+    // 文献値との比較（規格化に使った吸収端。範囲内になければ記録の吸収端）
     const allRefs = refMarkers(plot.rec, s, xps, -Infinity, Infinity);
-    if (!xps && allRefs[0]) {
-      const r = allRefs[0], d0 = nz && nz.e0 - r.v;
+    const r0 = edgeRef || allRefs.find(r => plot.rec.edge === `${r.el} ${r.edge}-edge`);
+    if (!xps && r0) {
+      const r = r0, d0 = nz && nz.e0 - r.v;
       info.push(t("refEdge", { el: r.el, edge: r.edge, v: r.v, src: t("refSrc_" + r.src) }) + (nz ? t("refDiff", { d: `${d0 >= 0 ? "+" : ""}${d0.toFixed(1)}` }) : ""));
     }
     if (xps && refs.length) info.push(t(refs.some(r => r.src === "elam") ? "refXpsMixed" : "refXps"));
@@ -1046,8 +1082,8 @@
       if (d > best) { best = d; i0 = i; }
     }
     if (i0 < 0) return null;
-    const e0 = x[i0], dPre = Math.min(30, 0.35 * (e0 - x[0])), dPost = Math.min(50, 0.3 * (x[n - 1] - e0));
-    let pre = x.map((v, i) => i).filter(i => x[i] < e0 - dPre), post = x.map((v, i) => i).filter(i => x[i] > e0 + dPost);
+    const e0 = x[i0], bd = edgeBounds(x, ys, e0), dPre = Math.min(30, 0.35 * (e0 - bd.lo)), dPost = Math.min(50, 0.3 * (bd.hi - e0));
+    let pre = x.map((v, i) => i).filter(i => x[i] >= bd.lo && x[i] < e0 - dPre), post = x.map((v, i) => i).filter(i => x[i] > e0 + dPost && x[i] <= bd.hi);
     if (pre.length < 3) pre = [0, 1, 2];
     if (post.length < 3) post = [n - 3, n - 2, n - 1];
     const order = x[post[post.length - 1]] - x[post[0]] > 200 ? 2 : 1;

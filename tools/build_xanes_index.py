@@ -21,6 +21,7 @@ DB・施設・分光結晶ごとに、その元素の金属（箔）の「半値
     python build_xanes_index.py --spectra ../docs/spectra --index ../docs/ixdb_index.js
 """
 import argparse
+import bisect
 import collections
 import json
 import math
@@ -64,6 +65,28 @@ def polyval(p, xv):
     return sum(c * (xv - m) ** j for j, c in enumerate(b))
 
 
+def edge_bounds(x, ys, e0):
+    """範囲内のほかの吸収端（同じ元素の L2・L1、合金の別の元素など）を避けた、前縁・後縁の近似に使う範囲 (lo, hi)。
+    E0 から 60 eV より外で、E0 の段差の 3 割を超える段差が始まる位置まで（ページの edgeBounds と同じ）"""
+    acc = [0.0]
+    for w in ys:
+        acc.append(acc[-1] + w)
+
+    def mean(a, b):  # x は昇順なので、累積和で区間の平均を求める
+        i, j = bisect.bisect_left(x, a), bisect.bisect_right(x, b)
+        return (acc[j] - acc[i]) / (j - i) if j - i >= 2 else math.nan
+
+    def jump(e):
+        return mean(e + 5, e + 25) - mean(e - 25, e - 5)
+
+    lo, hi, j0 = x[0], x[-1], jump(e0)
+    if not j0 > 0:
+        return lo, hi
+    hi = next((u for u in x if u > e0 + 60 and jump(u) > 0.3 * j0), hi)
+    lo = next((u + 30 for u in reversed(x) if u < e0 - 60 and jump(u) > 0.3 * j0), lo)  # 下の吸収端の立ち上がりを避ける
+    return lo, hi
+
+
 def normalize_xanes(x, y, ec):
     """吸収端 ec 付近を規格化・平坦化して (E0, 平坦化した規格化 μ のリスト（x に対応）) を返す。失敗時は None"""
     pts = [(a, b) for a, b in zip(x, y) if ec + WIN_LO <= a <= ec + WIN_HI and math.isfinite(b)]
@@ -83,10 +106,11 @@ def normalize_xanes(x, y, ec):
     if i0 is None:
         return None
     e0 = x[i0]
-    d_pre = min(30.0, 0.35 * (e0 - x[0]))
-    d_post = min(50.0, 0.3 * (x[-1] - e0))
-    pre_i = [i for i in range(n) if x[i] < e0 - d_pre] or list(range(3))
-    post_i = [i for i in range(n) if x[i] > e0 + d_post] or list(range(n - 3, n))
+    lo, hi = edge_bounds(x, ys, e0)
+    d_pre = min(30.0, 0.35 * (e0 - lo))
+    d_post = min(50.0, 0.3 * (hi - e0))
+    pre_i = [i for i in range(n) if lo <= x[i] < e0 - d_pre] or list(range(3))
+    post_i = [i for i in range(n) if e0 + d_post < x[i] <= hi] or list(range(n - 3, n))
     if len(pre_i) < 3:
         pre_i = list(range(3))
     if len(post_i) < 3:
